@@ -1,0 +1,97 @@
+{
+  "order_id": "ORD-2026-00421",
+  "test_code": "1600",
+  "test_name": "Trio Whole Exome Sequencing",
+  "patient": {
+    "first_name": "Maya",
+    "last_name": "Chen",
+    "date_of_birth": "2023-06-15",
+    "sex": "FEMALE",
+    "ethnicity": ["EAST ASIAN"],
+    "medical_record_number": "MR-MCH-90421",
+    "phone": "6175551234",
+    "address": "42 Beacon Hill Dr, Boston, MA 02108",
+    "relatives": [
+      {
+        "relationship": "MOTHER",
+        "first_name": "Lin",
+        "last_name": "Chen",
+        "date_of_birth": "1991-03-22",
+        "sex": "FEMALE",
+        "test_codes": ["1550"],
+        "sample_status": "COLLECTED"
+      },
+      {
+        "relationship": "FATHER",
+        "first_name": "David",
+        "last_name": "Chen",
+        "date_of_birth": "1989-11-05",
+        "sex": "MALE",
+        "test_codes": ["1550"],
+        "sample_status": "COLLECTED"
+      }
+    ]
+  },
+  "insurance": {
+    "payment_method": "INSURANCE",
+    "insurance_type": "COMMERCIAL",
+    "primary": {
+      "company_name": "UnitedHealthcare",
+      "company_code": "UHC",
+      "member_id": "UHC-887421556",
+      "group_id": "GRP-TECH-2024",
+      "authorization_number": null,
+      "relationship": "CHILD",
+      "type": "PRIMARY"
+    }
+  },
+  "clinical_info": {
+    "icd10_codes": [
+      {"code": "Q89.7", "description": "Multiple congenital malformations, not elsewhere classified"},
+      {"code": "Q21.1", "description": "Atrial septal defect"},
+      {"code": "Q62.0", "description": "Congenital hydronephrosis"},
+      {"code": "F88", "description": "Other disorders of psychological development"}
+    ],
+    "indications": [
+      {
+        "name": "Multiple Congenital Anomalies",
+        "category": "Congenital",
+        "custom_value": "Atrial septal defect, bilateral congenital hydronephrosis, global developmental delay"
+      },
+      {
+        "name": "Global Developmental Delay",
+        "category": "Neurological",
+        "custom_value": "Not sitting independently at 14 months, absent babbling"
+      }
+    ],
+    "genes_of_interest": [],
+    "prior_genetic_testing": true,
+    "prior_testing_details": "Chromosomal microarray (CMA) performed 2024-09 — normal result. Targeted panel for Noonan spectrum — negative.",
+    "supplemental_notes": "Patient evaluated by Dr. Sarah Kim, Medical Geneticist (board-certified ABMGG). Pre-test genetic counseling completed 2026-03-28 by Jessica Park, CGC. Standard workup including echocardiogram, renal ultrasound, brain MRI completed. No single-gene etiology identified. WES recommended as most efficient next step given multi-system involvement.",
+    "is_inpatient": false,
+    "family_history": "No known consanguinity. Maternal uncle with learning difficulties. No other family members with congenital anomalies.",
+    "additional_info": "Patient referred from pediatric cardiology after echocardiogram revealed ASD. Subsequent evaluation found bilateral hydronephrosis and developmental delay, prompting genetics referral."
+  },
+  "care_team": {
+    "institution_name": "Boston Children's Hospital",
+    "institution_code": "BCH",
+    "ordering_provider_first_name": "Sarah",
+    "ordering_provider_last_name": "Kim",
+    "ordering_provider_email": "sarah.kim@childrens.harvard.edu",
+    "primary_contact_first_name": "Jessica",
+    "primary_contact_last_name": "Park"
+  },
+  "sample": {
+    "status": "COLLECTED",
+    "sample_type": "Blood in EDTA (Purple-Top)",
+    "collection_date": "2026-04-10"
+  },
+  "documents": [
+    {"title": "Genetics_Consultation_Note_20260328.pdf", "document_type": "Clinical Information"},
+    {"title": "Genetic_Counseling_Note_20260328.pdf", "document_type": "Clinical Information"},
+    {"title": "CMA_Report_20240915.pdf", "document_type": "Clinical Information"},
+    {"title": "Noonan_Panel_Report_20250112.pdf", "document_type": "Clinical Information"},
+    {"title": "UHC_Insurance_Card.jpg", "document_type": "Insurance Card"},
+    {"title": "Order_Requisition.pdf", "document_type": "Requisition"}
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "order_id": "ORD-2026-00773",
+  "test_code": "1600",
+  "test_name": "Trio Whole Exome Sequencing",
+  "patient": {
+    "first_name": "Aiden",
+    "last_name": "Patel",
+    "date_of_birth": "2024-11-02",
+    "sex": "MALE",
+    "ethnicity": ["SOUTH ASIAN"],
+    "medical_record_number": "MR-APT-67102",
+    "phone": "4085557890",
+    "address": "320 El Camino Real, Sunnyvale, CA 94087",
+    "relatives": [
+      {
+        "relationship": "MOTHER",
+        "first_name": "Priya",
+        "last_name": "Patel",
+        "date_of_birth": "1994-07-14",
+        "sex": "FEMALE",
+        "test_codes": ["1550"],
+        "sample_status": "COLLECTED"
+      },
+      {
+        "relationship": "FATHER",
+        "first_name": "Raj",
+        "last_name": "Patel",
+        "date_of_birth": "1993-02-28",
+        "sex": "MALE",
+        "test_codes": ["1550"],
+        "sample_status": "COLLECTED"
+      }
+    ]
+  },
+  "insurance": {
+    "payment_method": "INSURANCE",
+    "insurance_type": "COMMERCIAL",
+    "primary": {
+      "company_name": "UnitedHealthcare",
+      "company_code": "UHC",
+      "member_id": "UHC-554109823",
+      "group_id": "GRP-GOOG-2025",
+      "authorization_number": null,
+      "relationship": "CHILD",
+      "type": "PRIMARY"
+    }
+  },
+  "clinical_info": {
+    "icd10_codes": [
+      {"code": "G40.40", "description": "Other generalized epilepsy and epileptic syndromes, not intractable, without status epilepticus"},
+      {"code": "F82", "description": "Specific developmental disorder of motor function"},
+      {"code": "R62.50", "description": "Unspecified lack of expected normal physiological development in childhood"}
+    ],
+    "indications": [
+      {
+        "name": "Epileptic Encephalopathy",
+        "category": "Neurological",
+        "custom_value": "Seizure onset at 4 months, daily myoclonic jerks and focal seizures"
+      },
+      {
+        "name": "Hypotonia",
+        "category": "Neurological",
+        "custom_value": "Marked axial hypotonia since birth, poor head control"
+      }
+    ],
+    "genes_of_interest": ["SCN1A", "SCN2A", "KCNQ2", "CDKL5", "STXBP1"],
+    "prior_genetic_testing": false,
+    "prior_testing_details": null,
+    "supplemental_notes": "Neurology referral for infantile epileptic encephalopathy. EEG shows hypsarrhythmia. Brain MRI shows mild diffuse cerebral volume loss. No dysmorphic features noted.",
+    "is_inpatient": false,
+    "family_history": "Parents are non-consanguineous. No family history of epilepsy or developmental delay. One healthy older sibling.",
+    "additional_info": "Currently on levetiracetam and vigabatrin with poor seizure control."
+  },
+  "care_team": {
+    "institution_name": "Lucile Packard Children's Hospital",
+    "institution_code": "LPCH",
+    "ordering_provider_first_name": "Emily",
+    "ordering_provider_last_name": "Nakamura",
+    "ordering_provider_email": "emily.nakamura@stanford.edu",
+    "primary_contact_first_name": null,
+    "primary_contact_last_name": null
+  },
+  "sample": {
+    "status": "COLLECTED",
+    "sample_type": "Blood in EDTA (Purple-Top)",
+    "collection_date": "2026-04-08"
+  },
+  "documents": [
+    {"title": "Neurology_Note_20260405.pdf", "document_type": "Clinical Information"},
+    {"title": "EEG_Report_20260401.pdf", "document_type": "Clinical Information"},
+    {"title": "UHC_Card.jpg", "document_type": "Insurance Card"}
+  ]
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { OrderForm } from "./components/order-form";
 import { AgentPipeline } from "./components/agent-pipeline";
 import { EvaluationResult } from "./components/evaluation-result";
@@ -49,6 +49,13 @@ export default function Home() {
   const [result, setResult] = useState<EvaluationData | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const feedRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (feedRef.current) {
+      feedRef.current.scrollTo({ top: feedRef.current.scrollHeight, behavior: "smooth" });
+    }
+  }, [agents, result]);
 
   const handleSSEEvent = (event: string, data: unknown) => {
     if (event === "pipeline") {
@@ -89,7 +96,7 @@ export default function Home() {
             const data = JSON.parse(line.slice(6));
             handleSSEEvent(eventType, data);
           } catch {
-            // skip malformed
+            // skip
           }
           eventType = "";
         }
@@ -147,46 +154,55 @@ export default function Home() {
     setIsRunning(false);
   };
 
+  const hasActivity = agents.length > 0 || result || error;
+
   return (
-    <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-8">
-      <header className="mb-10">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-[var(--accent)]" />
-          <h1 className="text-sm font-medium tracking-wide uppercase text-[var(--muted)]">
+    <main className="flex flex-col h-screen max-w-3xl mx-auto w-full">
+      {/* Header */}
+      <header className="shrink-0 px-6 pt-6 pb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
+          <h1 className="text-xs font-medium tracking-widest uppercase text-[var(--muted)]">
             Prior Auth Agent
           </h1>
         </div>
-        <p className="text-xs text-[var(--muted)] mt-2 ml-4">
-          Pre-submission PA evaluation for genomics labs
-        </p>
       </header>
 
-      <div className="space-y-6">
-        {!isRunning && !result && (
-          <OrderForm
-            onSubmitJson={runEvaluation}
-            onSubmitPdf={runPdfEvaluation}
-            isRunning={isRunning}
-          />
-        )}
-
-        {agents.length > 0 && <AgentPipeline agents={agents} />}
-
-        {error && (
-          <div className="border border-[var(--error)]/30 rounded px-4 py-3 bg-[var(--error)]/5">
-            <p className="text-xs text-[var(--error)]">{error}</p>
+      {/* Content */}
+      <div ref={feedRef} className="flex-1 overflow-y-auto px-6 pb-6">
+        {!hasActivity && (
+          <div className="animate-fade-in">
+            <OrderForm
+              onSubmitJson={runEvaluation}
+              onSubmitPdf={runPdfEvaluation}
+              isRunning={isRunning}
+            />
           </div>
         )}
 
-        {result && <EvaluationResult data={result} />}
+        {hasActivity && (
+          <div className="space-y-2">
+            <AgentPipeline agents={agents} />
 
-        {(result || error) && !isRunning && (
-          <button
-            onClick={reset}
-            className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
-          >
-            Run another evaluation
-          </button>
+            {error && (
+              <div className="animate-slide-in border-l-2 border-[var(--error)] pl-4 py-2">
+                <p className="text-xs text-[var(--error)]">{error}</p>
+              </div>
+            )}
+
+            {result && <EvaluationResult data={result} />}
+
+            {(result || error) && !isRunning && (
+              <div className="pt-6 animate-fade-in">
+                <button
+                  onClick={reset}
+                  className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors border border-[var(--border)] rounded px-3 py-1.5 hover:border-[var(--muted)]"
+                >
+                  New evaluation
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </main>

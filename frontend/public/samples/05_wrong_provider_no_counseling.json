@@ -1,0 +1,83 @@
+{
+  "order_id": "ORD-2026-01044",
+  "test_code": "1803",
+  "test_name": "Duo Whole Genome Sequencing",
+  "patient": {
+    "first_name": "Sophia",
+    "last_name": "Williams",
+    "date_of_birth": "2020-09-18",
+    "sex": "FEMALE",
+    "ethnicity": ["EUROPEAN"],
+    "medical_record_number": "MR-SWL-22918",
+    "phone": "9045553210",
+    "address": "1450 San Marco Blvd, Jacksonville, FL 32207",
+    "relatives": [
+      {
+        "relationship": "MOTHER",
+        "first_name": "Rebecca",
+        "last_name": "Williams",
+        "date_of_birth": "1988-12-01",
+        "sex": "FEMALE",
+        "test_codes": ["1550"],
+        "sample_status": "COLLECTED"
+      }
+    ]
+  },
+  "insurance": {
+    "payment_method": "INSURANCE",
+    "insurance_type": "COMMERCIAL",
+    "primary": {
+      "company_name": "Aetna",
+      "company_code": "AETNA",
+      "member_id": "AET-D55912043",
+      "group_id": "GRP-FPL-EMP",
+      "authorization_number": null,
+      "relationship": "CHILD",
+      "type": "PRIMARY"
+    }
+  },
+  "clinical_info": {
+    "icd10_codes": [
+      {"code": "F84.0", "description": "Autistic disorder"},
+      {"code": "F80.2", "description": "Mixed receptive-expressive language disorder"},
+      {"code": "R62.50", "description": "Unspecified lack of expected normal physiological development in childhood"}
+    ],
+    "indications": [
+      {
+        "name": "Autism Spectrum Disorder",
+        "category": "Neurological",
+        "custom_value": "Diagnosed at age 3, non-verbal, stereotypic hand movements"
+      },
+      {
+        "name": "Developmental Delay",
+        "category": "Neurological",
+        "custom_value": "Gross and fine motor delays, speech delay"
+      }
+    ],
+    "genes_of_interest": [],
+    "prior_genetic_testing": false,
+    "prior_testing_details": null,
+    "supplemental_notes": "Patient seen by pediatrician Dr. Thomas Reed. ASD diagnosed at age 3 via ADOS-2. Non-verbal, significant behavioral challenges. Family requesting genetic testing to understand cause.",
+    "is_inpatient": false,
+    "family_history": "Maternal cousin with ADHD. No other known developmental or genetic conditions.",
+    "additional_info": null
+  },
+  "care_team": {
+    "institution_name": "Riverside Pediatrics",
+    "institution_code": "RVPD",
+    "ordering_provider_first_name": "Thomas",
+    "ordering_provider_last_name": "Reed",
+    "ordering_provider_email": "treed@riversidepeds.com",
+    "primary_contact_first_name": null,
+    "primary_contact_last_name": null
+  },
+  "sample": {
+    "status": "COLLECTED",
+    "sample_type": "Buccal Swab",
+    "collection_date": "2026-04-09"
+  },
+  "documents": [
+    {"title": "Pediatric_Visit_Note_20260409.pdf", "document_type": "Clinical Information"},
+    {"title": "Aetna_Card.jpg", "document_type": "Insurance Card"}
+  ]
+}

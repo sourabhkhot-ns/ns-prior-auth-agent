@@ -1,0 +1,85 @@
+{
+  "order_id": "ORD-2026-00587",
+  "test_code": "1800",
+  "test_name": "Trio Whole Genome Sequencing",
+  "patient": {
+    "first_name": "Robert",
+    "last_name": "Martinez",
+    "middle_name": "J",
+    "date_of_birth": "1968-04-12",
+    "sex": "MALE",
+    "ethnicity": ["HISPANIC AMERICAN"],
+    "medical_record_number": "MR-RMZ-33201",
+    "phone": "2125559876",
+    "address": "815 W 181st St, New York, NY 10033",
+    "relatives": [
+      {
+        "relationship": "MOTHER",
+        "first_name": "Carmen",
+        "last_name": "Martinez",
+        "date_of_birth": "1942-08-19",
+        "sex": "FEMALE",
+        "test_codes": ["1550"],
+        "sample_status": "COLLECTED"
+      },
+      {
+        "relationship": "FATHER",
+        "first_name": "Jorge",
+        "last_name": "Martinez",
+        "date_of_birth": "1940-01-30",
+        "sex": "MALE",
+        "test_codes": ["1550"],
+        "sample_status": "COLLECTED"
+      }
+    ]
+  },
+  "insurance": {
+    "payment_method": "INSURANCE",
+    "insurance_type": "COMMERCIAL",
+    "primary": {
+      "company_name": "Aetna",
+      "company_code": "AETNA",
+      "member_id": "AET-W90233187",
+      "group_id": "GRP-NYC-HOSP",
+      "authorization_number": null,
+      "relationship": "SELF",
+      "type": "PRIMARY"
+    }
+  },
+  "clinical_info": {
+    "icd10_codes": [
+      {"code": "J18.9", "description": "Pneumonia, unspecified organism"},
+      {"code": "E11.9", "description": "Type 2 diabetes mellitus without complications"},
+      {"code": "I10", "description": "Essential (primary) hypertension"}
+    ],
+    "indications": [
+      {
+        "name": "Recurrent Pneumonia",
+        "category": "Pulmonary",
+        "custom_value": "Patient with multiple hospitalizations for pneumonia"
+      }
+    ],
+    "genes_of_interest": [],
+    "prior_genetic_testing": false,
+    "supplemental_notes": null,
+    "is_inpatient": true,
+    "family_history": null,
+    "additional_info": null
+  },
+  "care_team": {
+    "institution_name": "Columbia University Medical Center",
+    "institution_code": "CUMC",
+    "ordering_provider_first_name": "Michael",
+    "ordering_provider_last_name": "Torres",
+    "primary_contact_first_name": null,
+    "primary_contact_last_name": null
+  },
+  "sample": {
+    "status": "COLLECTED",
+    "sample_type": "Blood in EDTA (Purple-Top)",
+    "collection_date": "2026-04-12"
+  },
+  "documents": [
+    {"title": "Order_Requisition.pdf", "document_type": "Requisition"}
+  ]
+}

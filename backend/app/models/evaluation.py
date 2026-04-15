@@ -1,14 +1,28 @@
 from __future__ import annotations
 
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+
+def _coerce_bool(v: object) -> bool:
+    """Coerce LLM responses like 'partially', 'yes', 'no' to bool."""
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, str):
+        return v.lower() in ("true", "yes", "1", "met")
+    return bool(v)
 
 
 class CodeResult(BaseModel):
-    code: str
+    code: str = ""
     description: str = ""
-    status: str  # ACCEPTED, REJECTED, UNCERTAIN
+    status: str = "UNCERTAIN"  # ACCEPTED, REJECTED, UNCERTAIN
     reason: str = ""
+
+    @field_validator("code", "description", "reason", mode="before")
+    @classmethod
+    def default_str(cls, v: str | None) -> str:
+        return v or ""
 
 
 class CodeEvaluation(BaseModel):
@@ -18,10 +32,20 @@ class CodeEvaluation(BaseModel):
 
 
 class CriterionResult(BaseModel):
-    criterion: str
-    met: bool
-    evidence: str = ""  # What in the order supports/contradicts this
+    criterion: str = ""
+    met: bool = False
+    evidence: str = ""
     notes: str | None = None
+
+    @field_validator("met", mode="before")
+    @classmethod
+    def coerce_met(cls, v: object) -> bool:
+        return _coerce_bool(v)
+
+    @field_validator("criterion", "evidence", mode="before")
+    @classmethod
+    def default_str(cls, v: str | None) -> str:
+        return v or ""
 
 
 class CriteriaEvaluation(BaseModel):
@@ -29,11 +53,21 @@ class CriteriaEvaluation(BaseModel):
     overall_met: bool = False
     summary: str = ""
 
+    @field_validator("overall_met", mode="before")
+    @classmethod
+    def coerce_overall_met(cls, v: object) -> bool:
+        return _coerce_bool(v)
+
 
 class GapItem(BaseModel):
-    requirement: str  # What the payor requires
-    status: str  # MISSING, PRESENT, PARTIAL
-    detail: str = ""  # Specific description of what's missing
+    requirement: str = ""
+    status: str = "MISSING"  # MISSING, PRESENT, PARTIAL
+    detail: str = ""
+
+    @field_validator("requirement", "detail", mode="before")
+    @classmethod
+    def default_str(cls, v: str | None) -> str:
+        return v or ""
 
 
 class GapReport(BaseModel):

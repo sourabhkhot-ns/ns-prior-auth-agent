@@ -1,0 +1,73 @@
+{
+  "order_id": "ORD-2026-00892",
+  "test_code": "1829",
+  "test_name": "Rapid Proband Whole Genome Sequencing",
+  "patient": {
+    "first_name": "Baby Girl",
+    "last_name": "Thompson",
+    "date_of_birth": "2026-04-11",
+    "sex": "FEMALE",
+    "ethnicity": ["AFRICAN AMERICAN", "EUROPEAN"],
+    "medical_record_number": "MR-BGT-00411",
+    "phone": "3125554567",
+    "address": "200 E Pearson St, Chicago, IL 60611",
+    "relatives": []
+  },
+  "insurance": {
+    "payment_method": "INSURANCE",
+    "insurance_type": "COMMERCIAL",
+    "primary": {
+      "company_name": "Aetna",
+      "company_code": "AETNA",
+      "member_id": "AET-K44781209",
+      "group_id": "GRP-NW-MEM",
+      "authorization_number": null,
+      "relationship": "CHILD",
+      "type": "PRIMARY"
+    }
+  },
+  "clinical_info": {
+    "icd10_codes": [
+      {"code": "Q79.0", "description": "Congenital diaphragmatic hernia"},
+      {"code": "Q21.3", "description": "Tetralogy of Fallot"},
+      {"code": "Q67.4", "description": "Other congenital deformities of skull, face and jaw"},
+      {"code": "P28.5", "description": "Respiratory failure of newborn"}
+    ],
+    "indications": [
+      {
+        "name": "Multiple Congenital Anomalies",
+        "category": "Congenital",
+        "custom_value": "Congenital diaphragmatic hernia, tetralogy of Fallot, micrognathia, respiratory failure"
+      }
+    ],
+    "genes_of_interest": [],
+    "prior_genetic_testing": true,
+    "prior_testing_details": "STAT chromosomal microarray sent on DOL 1, results pending. FISH for 22q11.2 deletion — negative.",
+    "supplemental_notes": "4-day-old female in NICU on mechanical ventilation. Born at 37 weeks via emergency C-section for fetal distress. Multiple congenital anomalies identified: left congenital diaphragmatic hernia (repaired DOL 2), tetralogy of Fallot, micrognathia. Genetics consulted DOL 1. Dr. Rachel Okonkwo (board-certified Medical Geneticist) recommends rapid WGS to guide surgical planning and prognostication. Pre-test counseling completed with parents by Amanda Liu, CGC.",
+    "is_inpatient": true,
+    "family_history": "Non-consanguineous parents. No known family history of congenital anomalies or genetic conditions. One healthy 3-year-old sibling.",
+    "additional_info": "URGENT — acutely ill neonate. Results needed to inform cardiac surgical planning. Multidisciplinary team conference scheduled for DOL 10."
+  },
+  "care_team": {
+    "institution_name": "Ann & Robert H. Lurie Children's Hospital",
+    "institution_code": "LURIE",
+    "ordering_provider_first_name": "Rachel",
+    "ordering_provider_last_name": "Okonkwo",
+    "ordering_provider_email": "rokonkwo@luriechildrens.org",
+    "primary_contact_first_name": "Amanda",
+    "primary_contact_last_name": "Liu"
+  },
+  "sample": {
+    "status": "COLLECTED",
+    "sample_type": "Blood in EDTA (Purple-Top)",
+    "collection_date": "2026-04-12"
+  },
+  "documents": [
+    {"title": "Genetics_Consult_Note_DOL1.pdf", "document_type": "Clinical Information"},
+    {"title": "Genetic_Counseling_Note_DOL1.pdf", "document_type": "Clinical Information"},
+    {"title": "FISH_22q11_Report.pdf", "document_type": "Clinical Information"},
+    {"title": "NICU_Admission_Summary.pdf", "document_type": "Clinical Information"},
+    {"title": "Aetna_Insurance_Card.jpg", "document_type": "Insurance Card"},
+    {"title": "Requisition.pdf", "document_type": "Requisition"}
+  ]
+}

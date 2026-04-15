@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { EvaluationData } from "../page";
 
 interface EvaluationResultProps {
@@ -8,86 +8,142 @@ interface EvaluationResultProps {
 }
 
 function RiskBadge({ risk }: { risk: string }) {
-  const colors: Record<string, string> = {
-    HIGH: "bg-[var(--error)]/10 text-[var(--error)] border-[var(--error)]/20",
-    MEDIUM: "bg-[var(--warning)]/10 text-[var(--warning)] border-[var(--warning)]/20",
-    LOW: "bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/20",
+  const styles: Record<string, string> = {
+    HIGH: "bg-[var(--error)]/15 text-[var(--error)] border-[var(--error)]/30",
+    MEDIUM: "bg-[var(--warning)]/15 text-[var(--warning)] border-[var(--warning)]/30",
+    LOW: "bg-[var(--success)]/15 text-[var(--success)] border-[var(--success)]/30",
   };
   return (
-    <span className={`px-2 py-0.5 text-xs font-medium rounded border ${colors[risk] || colors.HIGH}`}>
-      {risk}
+    <span className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded border ${styles[risk] || styles.HIGH}`}>
+      {risk} RISK
     </span>
   );
 }
 
-function SeverityDot({ severity }: { severity: string }) {
-  const colors: Record<string, string> = {
-    CRITICAL: "bg-[var(--error)]",
-    WARNING: "bg-[var(--warning)]",
-    INFO: "bg-[var(--accent)]",
+function SeverityTag({ severity }: { severity: string }) {
+  const styles: Record<string, string> = {
+    CRITICAL: "text-[var(--error)]",
+    WARNING: "text-[var(--warning)]",
+    INFO: "text-[var(--accent)]",
   };
-  return <div className={`w-1.5 h-1.5 rounded-full mt-1.5 ${colors[severity] || colors.INFO}`} />;
+  const icons: Record<string, string> = {
+    CRITICAL: "!!",
+    WARNING: "!",
+    INFO: "i",
+  };
+  return (
+    <span className={`text-[10px] font-bold ${styles[severity] || styles.INFO}`}>
+      [{icons[severity] || "i"}]
+    </span>
+  );
 }
 
-function Section({ title, defaultOpen, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+function Section({
+  title,
+  count,
+  defaultOpen,
+  delay,
+  children,
+}: {
+  title: string;
+  count?: number;
+  defaultOpen?: boolean;
+  delay?: number;
+  children: React.ReactNode;
+}) {
   const [open, setOpen] = useState(defaultOpen ?? false);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), delay || 0);
+    return () => clearTimeout(t);
+  }, [delay]);
+
+  if (!visible) return null;
+
   return (
-    <div className="border-t border-[var(--border)]">
+    <div className="animate-slide-in">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full px-4 py-3 flex items-center justify-between text-xs hover:bg-[var(--surface)] transition-colors"
+        className="w-full flex items-center gap-2 py-3 text-xs group"
       >
-        <span className="text-[var(--muted)]">{title}</span>
         <svg
-          width="12" height="12" viewBox="0 0 12 12" fill="none"
-          className={`text-[var(--muted)] transition-transform ${open ? "rotate-180" : ""}`}
+          width="10" height="10" viewBox="0 0 10 10" fill="none"
+          className={`text-[var(--muted)] transition-transform duration-200 ${open ? "rotate-90" : ""}`}
         >
-          <path d="M3 5L6 8L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M3 1.5L7 5L3 8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
+        <span className="text-[var(--foreground)] group-hover:text-[var(--accent)] transition-colors">
+          {title}
+        </span>
+        {count !== undefined && (
+          <span className="text-[var(--muted)]">({count})</span>
+        )}
       </button>
-      {open && <div className="px-4 pb-4">{children}</div>}
+      {open && (
+        <div className="pl-5 pb-4 animate-fade-in">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CodeLine({ symbol, color, label, sublabel, detail }: {
+  symbol: string;
+  color: string;
+  label: string;
+  sublabel?: string;
+  detail?: string;
+}) {
+  return (
+    <div className="flex items-start gap-2 py-1">
+      <span className={`text-xs font-mono shrink-0 ${color}`}>{symbol}</span>
+      <div className="min-w-0">
+        <span className="text-xs">{label}</span>
+        {sublabel && <span className="text-xs text-[var(--muted)] ml-1.5">{sublabel}</span>}
+        {detail && <p className="text-[11px] text-[var(--muted)] mt-0.5 leading-relaxed">{detail}</p>}
+      </div>
     </div>
   );
 }
 
 export function EvaluationResult({ data }: EvaluationResultProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    containerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
   return (
-    <div className="border border-[var(--border)] rounded-lg overflow-hidden">
-      {/* Header */}
-      <div className="px-4 py-4 flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-[var(--muted)]">Denial Risk</span>
-            <RiskBadge risk={data.denial_risk} />
-          </div>
-          <p className="text-xs text-[var(--foreground)] mt-3 leading-relaxed max-w-2xl">
-            {data.summary}
-          </p>
-        </div>
+    <div ref={containerRef} className="space-y-1 pt-2">
+      {/* Risk + Summary */}
+      <div className="animate-slide-in py-3">
+        <RiskBadge risk={data.denial_risk} />
+        <p className="text-xs text-[var(--foreground)]/90 mt-4 leading-relaxed max-w-2xl">
+          {data.summary}
+        </p>
       </div>
 
       {/* Issues */}
       {data.issues.length > 0 && (
-        <Section title={`Issues (${data.issues.length})`} defaultOpen>
-          <div className="space-y-3">
+        <Section title="Issues to resolve" count={data.issues.length} defaultOpen delay={100}>
+          <div className="space-y-4">
             {data.issues.map((issue, i) => (
-              <div key={i} className="flex gap-2.5">
-                <SeverityDot severity={issue.severity} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-[var(--foreground)]">
-                      {issue.severity}
-                    </span>
+              <div key={i} className="animate-slide-in" style={{ animationDelay: `${i * 80}ms` }}>
+                <div className="flex items-start gap-2">
+                  <SeverityTag severity={issue.severity} />
+                  <div className="min-w-0 flex-1">
                     <span className="text-xs text-[var(--muted)]">{issue.category}</span>
-                  </div>
-                  <p className="text-xs text-[var(--foreground)]/80 mt-1 leading-relaxed">
-                    {issue.description}
-                  </p>
-                  {issue.resolution && (
-                    <p className="text-xs text-[var(--muted)] mt-1.5 leading-relaxed">
-                      {issue.resolution}
+                    <p className="text-xs text-[var(--foreground)] mt-1 leading-relaxed">
+                      {issue.description}
                     </p>
-                  )}
+                    {issue.resolution && (
+                      <p className="text-[11px] text-[var(--muted)] mt-2 leading-relaxed pl-3 border-l-2 border-[var(--border)]">
+                        {issue.resolution}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -96,77 +152,75 @@ export function EvaluationResult({ data }: EvaluationResultProps) {
       )}
 
       {/* Code Evaluation */}
-      <Section title="Code Evaluation">
-        <div className="space-y-2">
+      <Section title="Code evaluation" delay={200}>
+        <div className="space-y-0.5">
           {data.code_evaluation.icd10_results.map((r, i) => (
-            <div key={i} className="flex items-start gap-2">
-              <span className={`text-xs font-mono mt-0.5 ${
+            <CodeLine
+              key={`icd-${i}`}
+              symbol={r.status === "ACCEPTED" ? "+" : r.status === "REJECTED" ? "x" : "?"}
+              color={
                 r.status === "ACCEPTED" ? "text-[var(--success)]" :
                 r.status === "REJECTED" ? "text-[var(--error)]" :
                 "text-[var(--warning)]"
-              }`}>
-                {r.status === "ACCEPTED" ? "+" : r.status === "REJECTED" ? "x" : "?"}
-              </span>
-              <div>
-                <span className="text-xs font-medium">{r.code}</span>
-                <span className="text-xs text-[var(--muted)] ml-2">{r.description}</span>
-                <p className="text-xs text-[var(--muted)] mt-0.5">{r.reason}</p>
-              </div>
-            </div>
+              }
+              label={r.code}
+              sublabel={r.description}
+              detail={r.reason}
+            />
           ))}
           {data.code_evaluation.cpt_results.map((r, i) => (
-            <div key={`cpt-${i}`} className="flex items-start gap-2">
-              <span className={`text-xs font-mono mt-0.5 ${
-                r.status === "ACCEPTED" ? "text-[var(--success)]" : "text-[var(--error)]"
-              }`}>
-                {r.status === "ACCEPTED" ? "+" : "x"}
-              </span>
-              <div>
-                <span className="text-xs font-medium">CPT {r.code}</span>
-                <span className="text-xs text-[var(--muted)] ml-2">{r.status}</span>
-              </div>
-            </div>
+            <CodeLine
+              key={`cpt-${i}`}
+              symbol={r.status === "ACCEPTED" ? "+" : "x"}
+              color={r.status === "ACCEPTED" ? "text-[var(--success)]" : "text-[var(--error)]"}
+              label={`CPT ${r.code}`}
+              sublabel={r.status}
+            />
           ))}
         </div>
       </Section>
 
-      {/* Criteria Evaluation */}
-      <Section title={`Medical Necessity (${data.criteria_evaluation.overall_met ? "Met" : "Not Met"})`}>
-        <p className="text-xs text-[var(--muted)] mb-3">{data.criteria_evaluation.summary}</p>
-        <div className="space-y-1.5">
+      {/* Criteria */}
+      <Section
+        title={`Medical necessity \u2014 ${data.criteria_evaluation.overall_met ? "met" : "not met"}`}
+        delay={300}
+      >
+        <p className="text-[11px] text-[var(--muted)] mb-3 leading-relaxed">{data.criteria_evaluation.summary}</p>
+        <div className="space-y-0.5">
           {data.criteria_evaluation.criteria_results.map((r, i) => (
-            <div key={i} className="flex items-start gap-2">
-              <span className={`text-xs font-mono mt-0.5 ${r.met ? "text-[var(--success)]" : "text-[var(--error)]"}`}>
-                {r.met ? "+" : "x"}
-              </span>
-              <div>
-                <span className="text-xs text-[var(--foreground)]/80">{r.criterion}</span>
-                {r.evidence && (
-                  <p className="text-xs text-[var(--muted)] mt-0.5">{r.evidence}</p>
-                )}
-              </div>
-            </div>
+            <CodeLine
+              key={i}
+              symbol={r.met ? "+" : "x"}
+              color={r.met ? "text-[var(--success)]" : "text-[var(--error)]"}
+              label={r.criterion}
+              detail={r.evidence}
+            />
           ))}
         </div>
       </Section>
 
-      {/* Gap Report */}
-      <Section title="Documentation Gaps">
-        <div className="space-y-2">
+      {/* Gaps */}
+      <Section
+        title="Documentation gaps"
+        count={
+          [...data.gap_report.missing_documents, ...data.gap_report.missing_clinical_info]
+            .filter(g => g.status === "MISSING").length
+        }
+        delay={400}
+      >
+        <div className="space-y-0.5">
           {[...data.gap_report.missing_documents, ...data.gap_report.missing_clinical_info].map((g, i) => (
-            <div key={i} className="flex items-start gap-2">
-              <span className={`text-xs font-mono mt-0.5 ${
+            <CodeLine
+              key={i}
+              symbol={g.status === "PRESENT" ? "+" : g.status === "MISSING" ? "x" : "~"}
+              color={
                 g.status === "PRESENT" ? "text-[var(--success)]" :
                 g.status === "MISSING" ? "text-[var(--error)]" :
                 "text-[var(--warning)]"
-              }`}>
-                {g.status === "PRESENT" ? "+" : g.status === "MISSING" ? "x" : "~"}
-              </span>
-              <div>
-                <span className="text-xs font-medium">{g.requirement}</span>
-                <p className="text-xs text-[var(--muted)] mt-0.5">{g.detail}</p>
-              </div>
-            </div>
+              }
+              label={g.requirement}
+              detail={g.detail}
+            />
           ))}
         </div>
       </Section>
