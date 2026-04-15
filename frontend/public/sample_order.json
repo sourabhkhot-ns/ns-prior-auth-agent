@@ -1,0 +1,88 @@
+{
+  "order_id": "BG-NB00-0O31V8",
+  "test_code": "1601",
+  "test_name": "Sequential Trio Whole Exome Sequencing",
+  "patient": {
+    "first_name": "Lolita",
+    "last_name": "Mann",
+    "middle_name": "Q",
+    "date_of_birth": "1973-12-29",
+    "sex": "FEMALE",
+    "ethnicity": ["HISPANIC AMERICAN"],
+    "medical_record_number": "MR-TLAEEIDM9U",
+    "email": "Kendra92@hotmail.com",
+    "phone": "4343833907",
+    "address": "1000 Main Street, Woodland, CA 95695",
+    "relatives": [
+      {
+        "relationship": "MOTHER",
+        "first_name": "Kari",
+        "last_name": "Wolf",
+        "date_of_birth": "1995-07-30",
+        "sex": "FEMALE",
+        "test_codes": ["1550"],
+        "sample_status": "COLLECTED"
+      },
+      {
+        "relationship": "FATHER",
+        "first_name": "Leo",
+        "last_name": "Green",
+        "date_of_birth": "1985-03-30",
+        "sex": "MALE",
+        "test_codes": ["1550"],
+        "sample_status": "COLLECTED"
+      }
+    ]
+  },
+  "insurance": {
+    "payment_method": "INSURANCE",
+    "insurance_type": "COMMERCIAL",
+    "primary": {
+      "company_name": "1199 National Benefit Fund",
+      "company_code": "1187",
+      "member_id": "R31AZYVUQUDW",
+      "group_id": "UBPLLV1L",
+      "authorization_number": "MGREY71VPE",
+      "relationship": "SPOUSE",
+      "type": "PRIMARY"
+    },
+    "secondary": null
+  },
+  "clinical_info": {
+    "icd10_codes": [
+      {"code": "A01.3", "description": "PARATYPHOID FEVER C"},
+      {"code": "A01.00", "description": "TYPHOID FEVER, UNSPECIFIED"},
+      {"code": "A01.1", "description": "PARATYPHOID FEVER A"}
+    ],
+    "indications": [
+      {
+        "name": "Type of Cancer",
+        "category": "Cancer",
+        "custom_value": "Clinical indication per patient history"
+      }
+    ],
+    "genes_of_interest": [],
+    "prior_genetic_testing": false,
+    "prior_testing_details": null,
+    "supplemental_notes": null,
+    "is_inpatient": false,
+    "family_history": null,
+    "additional_info": null
+  },
+  "care_team": {
+    "institution_name": "Test_Institution",
+    "institution_code": "MCGG",
+    "ordering_provider_first_name": "Lori",
+    "ordering_provider_last_name": "Nickerson",
+    "primary_contact_first_name": null,
+    "primary_contact_last_name": null
+  },
+  "sample": {
+    "status": "COLLECTED",
+    "sample_type": "Blood in EDTA (Purple-Top)",
+    "collection_date": "2026-04-13"
+  },
+  "documents": [
+    {"title": "Order_Summary.pdf", "document_type": "Requisition"}
+  ]
+}

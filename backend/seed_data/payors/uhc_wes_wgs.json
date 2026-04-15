@@ -1,0 +1,203 @@
+{
+  "payor_name": "UnitedHealthcare",
+  "payor_code": "UHC_COMMERCIAL",
+  "test_category": "WES_WGS",
+  "policy_version": "2026T0589Z",
+  "effective_date": "2026-01-01",
+  "accepted_cpt_codes": [
+    "81415", "81416", "81417",
+    "81425", "81426", "81427",
+    "0094U", "0212U", "0213U", "0214U", "0215U",
+    "0260U", "0264U", "0265U", "0266U", "0267U",
+    "0318U", "0335U", "0336U",
+    "0425U", "0426U", "0454U", "0469U",
+    "0532U", "0567U", "0582U", "0583U"
+  ],
+  "accepted_icd10_categories": [
+    "Congenital anomalies",
+    "Intellectual disability",
+    "Developmental disorders",
+    "Epileptic encephalopathy",
+    "Neurological disorders",
+    "Metabolic disorders",
+    "Immunologic disorders",
+    "Hematologic disorders",
+    "Growth abnormalities",
+    "Dysmorphic features",
+    "Hearing/visual impairment"
+  ],
+  "medical_necessity_criteria": [
+    {
+      "description": "The affected individual displays signs or symptoms of an undiagnosed or unexplained disorder with a suspected genetic cause",
+      "category": "CLINICAL_PRESENTATION",
+      "required": true,
+      "group": null,
+      "group_min_required": null
+    },
+    {
+      "description": "Test results are intended to directly impact the individual's medical management",
+      "category": "MEDICAL_IMPACT",
+      "required": true,
+      "group": null,
+      "group_min_required": null
+    },
+    {
+      "description": "The clinical presentation does not fit a well-delineated genetic syndrome or disorder for which a specific test or targeted panel is available",
+      "category": "TEST_APPROPRIATENESS",
+      "required": true,
+      "group": null,
+      "group_min_required": null
+    },
+    {
+      "description": "The test is ordered by a medical geneticist, neonatologist, neurologist, immunologist, or developmental pediatrician",
+      "category": "PROVIDER",
+      "required": true,
+      "group": null,
+      "group_min_required": null
+    },
+    {
+      "description": "Multiple Congenital Anomalies affecting at least two different organ systems",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_A",
+      "group_min_required": 1
+    },
+    {
+      "description": "Intellectual Disability characterized as moderate, severe, or profound, diagnosed by 18 years of age",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_A",
+      "group_min_required": 1
+    },
+    {
+      "description": "Global Developmental Delay",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_A",
+      "group_min_required": 1
+    },
+    {
+      "description": "Epileptic Encephalopathy with onset before three years of age",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_A",
+      "group_min_required": 1
+    },
+    {
+      "description": "Congenital Anomaly",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_B",
+      "group_min_required": 2
+    },
+    {
+      "description": "Significant hearing or visual impairment diagnosed by 18 years of age",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_B",
+      "group_min_required": 2
+    },
+    {
+      "description": "Laboratory abnormalities suggestive of an inborn error of metabolism",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_B",
+      "group_min_required": 2
+    },
+    {
+      "description": "Autism Spectrum Disorder",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_B",
+      "group_min_required": 2
+    },
+    {
+      "description": "Neuropsychiatric condition (e.g., bipolar disorder, schizophrenia, obsessive-compulsive disorder)",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_B",
+      "group_min_required": 2
+    },
+    {
+      "description": "Hypotonia or hypertonia in infancy",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_B",
+      "group_min_required": 2
+    },
+    {
+      "description": "Dystonia, ataxia, hemiplegia, neuromuscular disorder, movement disorder, or other serious neurologic abnormality",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_B",
+      "group_min_required": 2
+    },
+    {
+      "description": "Unexplained developmental regression unrelated to Autism Spectrum Disorder or epilepsy",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_B",
+      "group_min_required": 2
+    },
+    {
+      "description": "Growth abnormality (e.g., failure to thrive, short stature, microcephaly, macrocephaly, or overgrowth)",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_B",
+      "group_min_required": 2
+    },
+    {
+      "description": "Persistent and severe immunologic or hematologic disorder",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_B",
+      "group_min_required": 2
+    },
+    {
+      "description": "Dysmorphic features",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_B",
+      "group_min_required": 2
+    },
+    {
+      "description": "Consanguinity",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_B",
+      "group_min_required": 2
+    },
+    {
+      "description": "Other first- or second-degree family member(s) with similar clinical diagnosis",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_B",
+      "group_min_required": 2
+    }
+  ],
+  "required_documentation": [
+    "Genetic counseling documentation (recommended prior to WES/WGS)",
+    "Clinical notes supporting the suspected genetic disorder",
+    "Documentation of clinical presentation matching coverage criteria",
+    "Prior genetic testing results (if targeted panel was performed)",
+    "Ordering provider credentials confirming eligible specialty"
+  ],
+  "ordering_provider_requirements": [
+    "Must be ordered by a medical geneticist, neonatologist, neurologist, immunologist, or developmental pediatrician"
+  ],
+  "prior_testing_requirements": [
+    "If a specific genetic syndrome is suspected, a single gene or targeted panel should be performed prior to determining if WES or WGS is necessary"
+  ],
+  "submission_channel": "PORTAL",
+  "submission_notes": "Refer to Medical Records Documentation Used for Reviews guidelines",
+  "exclusions": [
+    "Evaluation of fetal demise",
+    "Prenatal testing via cell-free fetal DNA",
+    "Preimplantation Genetic Testing (PGT) in embryos",
+    "Screening and evaluating disorders when above criteria are not met",
+    "Rapid WES/WGS (rWES, rWGS, urWGS) in outpatient settings",
+    "Whole transcriptome sequencing",
+    "Epigenetic signature analysis",
+    "Optical genome mapping (OGM)"
+  ]
+}

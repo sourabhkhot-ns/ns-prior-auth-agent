@@ -1,0 +1,179 @@
+{
+  "payor_name": "Aetna",
+  "payor_code": "AETNA_COMMERCIAL",
+  "test_category": "WES_WGS",
+  "policy_version": "CPB 0140",
+  "effective_date": "2026-01-01",
+  "accepted_cpt_codes": [
+    "81415", "81416", "81417",
+    "81425", "81426", "81427",
+    "0214U", "0215U"
+  ],
+  "accepted_icd10_categories": [
+    "Congenital anomalies affecting unrelated organ systems",
+    "Bilateral sensorineural hearing loss (nonsyndromic)",
+    "Autism spectrum disorder with syndromic features",
+    "Epilepsy (intractable/early-onset, age 21 or under)",
+    "Structural/functional abnormality",
+    "Global developmental delay",
+    "Intellectual disability",
+    "Family history suggesting genetic etiology",
+    "Unexplained developmental regression",
+    "Metabolic findings",
+    "Non-immune hydrops fetalis (prenatal)"
+  ],
+  "medical_necessity_criteria": [
+    {
+      "description": "Genetic etiology is considered most likely based on clinical evaluation",
+      "category": "CLINICAL_PRESENTATION",
+      "required": true,
+      "group": null,
+      "group_min_required": null
+    },
+    {
+      "description": "Board-certified/board-eligible Medical Geneticist consultation (neurologist or developmental pediatrician acceptable for developmental delay cases)",
+      "category": "PROVIDER",
+      "required": true,
+      "group": null,
+      "group_min_required": null
+    },
+    {
+      "description": "Pre- and post-test genetic counseling by independent provider",
+      "category": "DOCUMENTATION",
+      "required": true,
+      "group": null,
+      "group_min_required": null
+    },
+    {
+      "description": "Alternate etiologies have been considered and ruled out when possible",
+      "category": "CLINICAL_PRESENTATION",
+      "required": true,
+      "group": null,
+      "group_min_required": null
+    },
+    {
+      "description": "Clinical presentation does not fit single-gene or targeted panel conditions",
+      "category": "TEST_APPROPRIATENESS",
+      "required": true,
+      "group": null,
+      "group_min_required": null
+    },
+    {
+      "description": "WES/WGS is more efficient than ordering separate tests",
+      "category": "TEST_APPROPRIATENESS",
+      "required": true,
+      "group": null,
+      "group_min_required": null
+    },
+    {
+      "description": "Standard clinical workup has been completed (excluding invasive procedures)",
+      "category": "PRIOR_TESTING",
+      "required": true,
+      "group": null,
+      "group_min_required": null
+    },
+    {
+      "description": "Testing must guide prognosis, clinical decision-making, reduce diagnostic uncertainty, or inform reproductive counseling",
+      "category": "MEDICAL_IMPACT",
+      "required": true,
+      "group": null,
+      "group_min_required": null
+    },
+    {
+      "description": "Multiple congenital abnormalities affecting unrelated organ systems",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_A",
+      "group_min_required": 1
+    },
+    {
+      "description": "Bilateral sensorineural hearing loss (nonsyndromic) with negative/inconclusive targeted panel",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_A",
+      "group_min_required": 1
+    },
+    {
+      "description": "Autism spectrum disorder with syndromic features and prior negative/inconclusive CGH or panel testing",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_A",
+      "group_min_required": 1
+    },
+    {
+      "description": "Epilepsy meeting specific requirements: age 21 or under, intractable or early-onset, prior testing negative",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_A",
+      "group_min_required": 1
+    },
+    {
+      "description": "Structural or functional abnormality",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_B",
+      "group_min_required": 2
+    },
+    {
+      "description": "Global developmental delay",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_B",
+      "group_min_required": 2
+    },
+    {
+      "description": "Intellectual disability",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_B",
+      "group_min_required": 2
+    },
+    {
+      "description": "Family history suggesting genetic etiology",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_B",
+      "group_min_required": 2
+    },
+    {
+      "description": "Unexplained developmental regression",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_B",
+      "group_min_required": 2
+    },
+    {
+      "description": "Metabolic findings",
+      "category": "CLINICAL_PRESENTATION",
+      "required": false,
+      "group": "GROUP_B",
+      "group_min_required": 2
+    }
+  ],
+  "required_documentation": [
+    "Board-certified Medical Geneticist consultation note (or neurologist/developmental pediatrician for dev delay)",
+    "Pre-test genetic counseling documentation",
+    "Post-test genetic counseling documentation (for results disclosure)",
+    "Clinical notes documenting alternate etiologies considered and ruled out",
+    "Documentation of standard clinical workup completed",
+    "Prior genetic testing results (if targeted panel was performed)",
+    "Clinical justification for why WES/WGS is more efficient than separate tests"
+  ],
+  "ordering_provider_requirements": [
+    "Board-certified or board-eligible Medical Geneticist consultation required",
+    "Neurologist or developmental pediatrician acceptable for developmental delay cases"
+  ],
+  "prior_testing_requirements": [
+    "Alternate etiologies considered and ruled out when possible",
+    "Standard clinical workup completed (excluding invasive procedures)",
+    "Prior negative/inconclusive targeted panel for certain indications (hearing loss, ASD, epilepsy)"
+  ],
+  "submission_channel": "PORTAL",
+  "submission_notes": null,
+  "exclusions": [
+    "Isolated transient neonatal conditions",
+    "Clear precipitating events for hypoxic-ischemic encephalopathy",
+    "Uncomplicated infection/sepsis",
+    "WGS after non-diagnostic WES (negligible diagnostic yield)"
+  ]
+}

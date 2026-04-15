@@ -1,0 +1,65 @@
+[
+  {
+    "test_code": "1600",
+    "test_name": "Trio Whole Exome Sequencing",
+    "cpt_codes": ["81415x1", "81416x2"],
+    "description": "WES testing of proband with both parents for comparison analysis",
+    "category": "WES",
+    "price": null,
+    "turnaround_time": "21 days"
+  },
+  {
+    "test_code": "1601",
+    "test_name": "Sequential Trio Whole Exome Sequencing",
+    "cpt_codes": ["81415x1", "81416x2"],
+    "description": "Sequential trio WES — proband sequenced first, parents added if needed",
+    "category": "WES",
+    "price": 1300.0,
+    "turnaround_time": "21 days"
+  },
+  {
+    "test_code": "1550",
+    "test_name": "WES Trio Parents",
+    "cpt_codes": ["81416x1"],
+    "description": "Parent comparator sample for trio WES",
+    "category": "WES",
+    "price": null,
+    "turnaround_time": null
+  },
+  {
+    "test_code": "1800",
+    "test_name": "Trio Whole Genome Sequencing",
+    "cpt_codes": ["81425x1", "81426x2"],
+    "description": "WGS testing of proband with both parents for comparison analysis",
+    "category": "WGS",
+    "price": 4800.0,
+    "turnaround_time": "21 days"
+  },
+  {
+    "test_code": "1803",
+    "test_name": "Duo Whole Genome Sequencing",
+    "cpt_codes": ["81425x1", "81426x1"],
+    "description": "WGS testing of proband with one parent for comparison analysis",
+    "category": "WGS",
+    "price": 3800.0,
+    "turnaround_time": "21 days"
+  },
+  {
+    "test_code": "1804",
+    "test_name": "Quad Whole Genome Sequencing",
+    "cpt_codes": ["81425x1", "81426x3"],
+    "description": "WGS testing of proband with both parents and one sibling",
+    "category": "WGS",
+    "price": null,
+    "turnaround_time": "21 days"
+  },
+  {
+    "test_code": "1829",
+    "test_name": "Rapid Proband Whole Genome Sequencing",
+    "cpt_codes": ["81425x1"],
+    "description": "Rapid WGS for acutely ill patients, NICU setting",
+    "category": "WGS",
+    "price": 4200.0,
+    "turnaround_time": "5 days"
+  }
+]

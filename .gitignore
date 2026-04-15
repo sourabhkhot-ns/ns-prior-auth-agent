@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+*.db
+
+# Environment
+.env
+backend/.env
+
+# Node
+node_modules/
+.next/
+frontend/.next/
+frontend/node_modules/
+
+# OS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Claude
+.claude/
