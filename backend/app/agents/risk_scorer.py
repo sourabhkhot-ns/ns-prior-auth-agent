@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.agents.state import AgentState
 from app.core.llm import llm_call_json
@@ -54,7 +54,7 @@ async def risk_scorer_node(state: AgentState) -> dict:
     if criteria_eval:
         criteria_eval_str = f"Summary: {criteria_eval.summary}\nOverall Met: {criteria_eval.overall_met}\n"
         for r in criteria_eval.criteria_results:
-            status = "MET" if r.met else "NOT MET"
+            status = r.met.upper().replace("_", " ")
             criteria_eval_str += f"  [{status}] {r.criterion}: {r.evidence}\n"
     else:
         criteria_eval_str = "Not evaluated"
@@ -92,7 +92,7 @@ async def risk_scorer_node(state: AgentState) -> dict:
         evaluation = PAEvaluation(
             order_id=order_id,
             evaluation_id=evaluation_id,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             denial_risk=result.get("denial_risk", "HIGH"),
             summary=result.get("summary", ""),
             code_evaluation=code_eval,

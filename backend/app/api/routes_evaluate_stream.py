@@ -2,9 +2,7 @@
 from __future__ import annotations
 
 import json
-import uuid
 import logging
-from datetime import datetime
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -12,9 +10,6 @@ from pydantic import BaseModel
 from app.agents.state import AgentState
 from app.core.pdf_parser import extract_text_from_pdf
 from app.models.order import Order
-from app.db.database import async_session
-from app.services.catalog_service import get_test_by_code
-from app.services.rules_service import find_payor_rule
 
 from app.agents.order_parser import order_parser_node
 from app.agents.enrichment import enrichment_node
@@ -26,6 +21,8 @@ from app.agents.risk_scorer import risk_scorer_node
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["evaluation-stream"])
 
+MAX_PDF_SIZE = 20 * 1024 * 1024  # 20MB
+
 
 class EvaluateRequest(BaseModel):
     order: Order
@@ -36,36 +33,44 @@ def _sse_event(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data)}\n\n"
 
 
+def _build_pipeline(state: AgentState) -> list[tuple[str, str, object]]:
+    """Build the agent pipeline with conditional routing matching graph.py logic."""
+    has_order = state.get("order") is not None
+    is_pdf = state.get("input_is_pdf", False)
+
+    pipeline = []
+
+    # 1. Order parser — skip if structured JSON input
+    if is_pdf or not has_order:
+        pipeline.append(("order_parser", "Parsing order from PDF", order_parser_node))
+
+    # 2. Enrichment — always runs
+    pipeline.append(("enrichment", "Looking up test catalog & payor rules", enrichment_node))
+
+    # 3-4. Code + Criteria evaluation — only if we expect payor rules
+    # (we don't know yet, so include them; they'll handle missing rules gracefully)
+    pipeline.append(("code_evaluator", "Evaluating ICD-10 & CPT codes", code_evaluator_node))
+    pipeline.append(("criteria_evaluator", "Checking medical necessity criteria", criteria_evaluator_node))
+
+    # 5. Gap detector
+    pipeline.append(("gap_detector", "Detecting documentation gaps", gap_detector_node))
+
+    # 6. Risk scorer — always runs last
+    pipeline.append(("risk_scorer", "Scoring denial risk", risk_scorer_node))
+
+    return pipeline
+
+
 async def _run_pipeline_streaming(state: AgentState):
     """Run the agent pipeline step by step, yielding SSE events."""
-    agents = [
-        ("order_parser", "Parsing order data", order_parser_node),
-        ("enrichment", "Looking up test catalog & payor rules", enrichment_node),
-        ("code_evaluator", "Evaluating ICD-10 & CPT codes", code_evaluator_node),
-        ("criteria_evaluator", "Checking medical necessity criteria", criteria_evaluator_node),
-        ("gap_detector", "Detecting documentation gaps", gap_detector_node),
-        ("risk_scorer", "Scoring denial risk", risk_scorer_node),
-    ]
+    pipeline = _build_pipeline(state)
 
     # Send initial pipeline state
     yield _sse_event("pipeline", {
-        "agents": [{"id": a[0], "label": a[1], "status": "pending"} for a in agents],
+        "agents": [{"id": a[0], "label": a[1], "status": "pending"} for a in pipeline],
     })
 
-    for agent_id, label, agent_fn in agents:
-        # Skip order_parser if not PDF
-        has_order = state.get("order") is not None
-        is_pdf = state.get("input_is_pdf", False)
-        logger.info("Agent %s: has_order=%s, is_pdf=%s", agent_id, has_order, is_pdf)
-        if agent_id == "order_parser" and has_order and not is_pdf:
-            yield _sse_event("agent_update", {
-                "id": agent_id,
-                "status": "skipped",
-                "label": label,
-                "message": "Order already structured",
-            })
-            continue
-
+    for agent_id, label, agent_fn in pipeline:
         # Signal agent start
         yield _sse_event("agent_update", {
             "id": agent_id,
@@ -77,7 +82,6 @@ async def _run_pipeline_streaming(state: AgentState):
             result = await agent_fn(state)
             state.update(result)
 
-            # Build a summary of what the agent found
             summary = _agent_summary(agent_id, state)
 
             yield _sse_event("agent_update", {
@@ -88,6 +92,8 @@ async def _run_pipeline_streaming(state: AgentState):
             })
         except Exception as e:
             logger.error("Agent %s failed: %s", agent_id, e)
+            state.setdefault("errors", []).append(f"{agent_id}: {e}")
+
             yield _sse_event("agent_update", {
                 "id": agent_id,
                 "status": "error",
@@ -95,12 +101,54 @@ async def _run_pipeline_streaming(state: AgentState):
                 "message": str(e),
             })
 
+            # Fatal agents — abort pipeline, jump to risk scorer
+            if agent_id in ("order_parser", "enrichment"):
+                # Mark remaining agents as skipped
+                remaining = [a for a in pipeline if a[0] not in
+                    ("order_parser", "enrichment", "risk_scorer", agent_id)]
+                for skip_id, skip_label, _ in remaining:
+                    yield _sse_event("agent_update", {
+                        "id": skip_id,
+                        "status": "skipped",
+                        "label": skip_label,
+                        "message": f"Skipped — {agent_id} failed",
+                    })
+
+                # Run risk scorer to produce error evaluation
+                yield _sse_event("agent_update", {
+                    "id": "risk_scorer",
+                    "status": "running",
+                    "label": "Scoring denial risk",
+                })
+                try:
+                    result = await risk_scorer_node(state)
+                    state.update(result)
+                    yield _sse_event("agent_update", {
+                        "id": "risk_scorer",
+                        "status": "completed",
+                        "label": "Scoring denial risk",
+                        "message": _agent_summary("risk_scorer", state),
+                    })
+                except Exception as re:
+                    yield _sse_event("agent_update", {
+                        "id": "risk_scorer",
+                        "status": "error",
+                        "label": "Scoring denial risk",
+                        "message": str(re),
+                    })
+                break
+
+            # Non-fatal agents — continue but note the failure
+            continue
+
     # Send final evaluation
     evaluation = state.get("evaluation")
     if evaluation:
         yield _sse_event("result", evaluation.model_dump(mode="json"))
     else:
-        yield _sse_event("error", {"message": "Pipeline completed without producing an evaluation"})
+        yield _sse_event("error", {
+            "message": "Pipeline failed: " + "; ".join(state.get("errors", ["Unknown error"]))
+        })
 
 
 def _agent_summary(agent_id: str, state: AgentState) -> str:
@@ -132,9 +180,13 @@ def _agent_summary(agent_id: str, state: AgentState) -> str:
     if agent_id == "criteria_evaluator":
         crit = state.get("criteria_evaluation")
         if crit:
-            met = sum(1 for r in crit.criteria_results if r.met)
+            met = sum(1 for r in crit.criteria_results if r.met == "met")
+            partial = sum(1 for r in crit.criteria_results if r.met == "partial")
             total = len(crit.criteria_results)
-            return f"{'Met' if crit.overall_met else 'Not met'} — {met}/{total} criteria satisfied"
+            parts = [f"{met}/{total} met"]
+            if partial:
+                parts.append(f"{partial} partial")
+            return f"{'Met' if crit.overall_met else 'Not met'} — {', '.join(parts)}"
         return "No criteria evaluation"
 
     if agent_id == "gap_detector":
@@ -181,7 +233,14 @@ async def evaluate_pdf_stream(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="File must be a PDF")
 
     pdf_bytes = await file.read()
+
+    if len(pdf_bytes) > MAX_PDF_SIZE:
+        raise HTTPException(status_code=400, detail="PDF exceeds 20MB limit")
+
     pdf_text = extract_text_from_pdf(pdf_bytes)
+
+    if not pdf_text.strip():
+        raise HTTPException(status_code=400, detail="Could not extract text from PDF")
 
     initial_state: AgentState = {
         "raw_pdf_text": pdf_text,

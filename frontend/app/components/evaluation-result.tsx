@@ -190,8 +190,12 @@ export function EvaluationResult({ data }: EvaluationResultProps) {
           {data.criteria_evaluation.criteria_results.map((r, i) => (
             <CodeLine
               key={i}
-              symbol={r.met ? "+" : "x"}
-              color={r.met ? "text-[var(--success)]" : "text-[var(--error)]"}
+              symbol={r.met === "met" ? "+" : r.met === "partial" ? "~" : "x"}
+              color={
+                r.met === "met" ? "text-[var(--success)]" :
+                r.met === "partial" ? "text-[var(--warning)]" :
+                "text-[var(--error)]"
+              }
               label={r.criterion}
               detail={r.evidence}
             />

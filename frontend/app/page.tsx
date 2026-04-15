@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { OrderForm } from "./components/order-form";
 import { AgentPipeline } from "./components/agent-pipeline";
 import { EvaluationResult } from "./components/evaluation-result";
@@ -25,7 +25,7 @@ export interface EvaluationData {
     summary: string;
   };
   criteria_evaluation: {
-    criteria_results: Array<{ criterion: string; met: boolean; evidence: string; notes?: string }>;
+    criteria_results: Array<{ criterion: string; met: string; evidence: string; notes?: string }>;
     overall_met: boolean;
     summary: string;
   };
@@ -50,6 +50,7 @@ export default function Home() {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const feedRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (feedRef.current) {
@@ -104,7 +105,18 @@ export default function Home() {
     }
   };
 
+  const cancelEvaluation = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setIsRunning(false);
+    setError("Evaluation cancelled");
+  }, []);
+
   const runEvaluation = async (orderJson: string) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setIsRunning(true);
     setResult(null);
     setError(null);
@@ -115,17 +127,24 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ order: JSON.parse(orderJson) }),
+        signal: controller.signal,
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
       await processStream(response);
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setIsRunning(false);
+      abortRef.current = null;
     }
   };
 
   const runPdfEvaluation = async (file: File) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setIsRunning(true);
     setResult(null);
     setError(null);
@@ -137,13 +156,16 @@ export default function Home() {
       const response = await fetch(`${API_URL}/api/v1/evaluate/pdf/stream`, {
         method: "POST",
         body: formData,
+        signal: controller.signal,
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
       await processStream(response);
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setIsRunning(false);
+      abortRef.current = null;
     }
   };
 
@@ -187,6 +209,17 @@ export default function Home() {
             {error && (
               <div className="animate-slide-in border-l-2 border-[var(--error)] pl-4 py-2">
                 <p className="text-xs text-[var(--error)]">{error}</p>
+              </div>
+            )}
+
+            {isRunning && (
+              <div className="pt-2 animate-fade-in">
+                <button
+                  onClick={cancelEvaluation}
+                  className="text-xs text-[var(--muted)] hover:text-[var(--error)] transition-colors"
+                >
+                  Cancel
+                </button>
               </div>
             )}
 

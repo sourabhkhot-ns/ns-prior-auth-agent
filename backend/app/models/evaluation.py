@@ -1,15 +1,29 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from pydantic import BaseModel, Field, field_validator
 
 
+def _coerce_met(v: object) -> str:
+    """Coerce LLM responses to tri-state: 'met', 'partial', 'not_met'."""
+    if isinstance(v, bool):
+        return "met" if v else "not_met"
+    if isinstance(v, str):
+        low = v.lower().strip()
+        if low in ("true", "yes", "1", "met"):
+            return "met"
+        if low in ("partial", "partially", "partially met", "partial met"):
+            return "partial"
+        return "not_met"
+    return "met" if v else "not_met"
+
+
 def _coerce_bool(v: object) -> bool:
-    """Coerce LLM responses like 'partially', 'yes', 'no' to bool."""
+    """Coerce LLM responses to bool."""
     if isinstance(v, bool):
         return v
     if isinstance(v, str):
-        return v.lower() in ("true", "yes", "1", "met")
+        return v.lower().strip() in ("true", "yes", "1", "met")
     return bool(v)
 
 
@@ -33,14 +47,14 @@ class CodeEvaluation(BaseModel):
 
 class CriterionResult(BaseModel):
     criterion: str = ""
-    met: bool = False
+    met: str = "not_met"  # tri-state: "met", "partial", "not_met"
     evidence: str = ""
     notes: str | None = None
 
     @field_validator("met", mode="before")
     @classmethod
-    def coerce_met(cls, v: object) -> bool:
-        return _coerce_bool(v)
+    def coerce_met(cls, v: object) -> str:
+        return _coerce_met(v)
 
     @field_validator("criterion", "evidence", mode="before")
     @classmethod
@@ -77,25 +91,27 @@ class GapReport(BaseModel):
 
 
 class Issue(BaseModel):
-    severity: str  # CRITICAL, WARNING, INFO
-    category: str  # CODE_MISMATCH, MISSING_DOC, CRITERIA_NOT_MET, PROVIDER_ISSUE
-    description: str
+    severity: str = "WARNING"
+    category: str = "OTHER"
+    description: str = ""
     resolution: str = ""
+
+    @field_validator("severity", "category", "description", "resolution", mode="before")
+    @classmethod
+    def default_str(cls, v: str | None) -> str:
+        return v or ""
 
 
 class PAEvaluation(BaseModel):
     order_id: str
     evaluation_id: str = ""
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    # Overall
-    denial_risk: str = ""  # HIGH, MEDIUM, LOW
+    denial_risk: str = ""
     summary: str = ""
 
-    # Detail sections
     code_evaluation: CodeEvaluation = Field(default_factory=CodeEvaluation)
     criteria_evaluation: CriteriaEvaluation = Field(default_factory=CriteriaEvaluation)
     gap_report: GapReport = Field(default_factory=GapReport)
 
-    # Actionable
     issues: list[Issue] = Field(default_factory=list)

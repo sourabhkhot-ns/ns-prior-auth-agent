@@ -13,6 +13,7 @@ litellm.suppress_debug_info = True
 
 MAX_RETRIES = 3
 RETRY_DELAY = 5  # seconds
+LLM_TIMEOUT = 60  # seconds per LLM call
 
 
 async def llm_call(
@@ -20,7 +21,7 @@ async def llm_call(
     user_prompt: str,
     response_format: dict | None = None,
 ) -> str:
-    """Make an LLM call via LiteLLM with retry on rate limits."""
+    """Make an LLM call via LiteLLM with retry on rate limits and timeout."""
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_prompt},
@@ -30,6 +31,7 @@ async def llm_call(
         "model": settings.llm_model,
         "messages": messages,
         "temperature": settings.llm_temperature,
+        "timeout": LLM_TIMEOUT,
     }
 
     if response_format:
@@ -37,10 +39,17 @@ async def llm_call(
 
     for attempt in range(MAX_RETRIES):
         try:
-            response = await litellm.acompletion(**kwargs)
+            response = await asyncio.wait_for(
+                litellm.acompletion(**kwargs),
+                timeout=LLM_TIMEOUT,
+            )
             content = response.choices[0].message.content
             logger.debug("LLM response (first 200 chars): %s", content[:200] if content else "EMPTY")
             return content or ""
+        except asyncio.TimeoutError:
+            logger.error("LLM call timed out after %ds (attempt %d/%d)", LLM_TIMEOUT, attempt + 1, MAX_RETRIES)
+            if attempt >= MAX_RETRIES - 1:
+                raise RuntimeError(f"LLM call timed out after {LLM_TIMEOUT}s")
         except litellm.RateLimitError:
             delay = RETRY_DELAY * (attempt + 1)
             logger.warning("Rate limited, retrying in %ds (attempt %d/%d)", delay, attempt + 1, MAX_RETRIES)
