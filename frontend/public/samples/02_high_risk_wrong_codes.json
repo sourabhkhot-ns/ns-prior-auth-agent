@@ -56,21 +56,23 @@
       {
         "name": "Recurrent Pneumonia",
         "category": "Pulmonary",
-        "custom_value": "Patient with multiple hospitalizations for pneumonia"
+        "custom_value": "Patient admitted 3 times in last 6 months for community-acquired pneumonia. Internal medicine attending requesting genetic workup to rule out underlying immunodeficiency or ciliary dyskinesia."
       }
     ],
     "genes_of_interest": [],
     "prior_genetic_testing": false,
-    "supplemental_notes": null,
+    "prior_testing_details": null,
+    "supplemental_notes": "Order placed by Dr. Michael Torres, internal medicine hospitalist. No genetics consultation obtained. No genetic counseling performed. Patient is a 58-year-old male with PMH of T2DM (A1c 8.2%), HTN, obesity (BMI 34), 20 pack-year smoking history (quit 2020). Admitted with third episode of CAP in 6 months. Chest CT shows bilateral lower lobe consolidation, no bronchiectasis. Immunoglobulin levels: IgG 850 mg/dL (normal), IgA 220 mg/dL (normal), IgM 95 mg/dL (normal). CBC with differential normal. HIV negative.",
     "is_inpatient": true,
-    "family_history": null,
-    "additional_info": null
+    "family_history": "Mother alive, age 84, HTN and T2DM. Father alive, age 86, COPD. Brother age 55, healthy. No known family history of genetic conditions, immunodeficiency, or consanguinity.",
+    "additional_info": "Pulmonology consult recommends bronchoscopy with BAL before pursuing genetic testing. Immunology not yet consulted. No evidence of primary immunodeficiency on standard workup. Recurrent pneumonia more likely related to smoking history, diabetes, and aspiration risk."
   },
   "care_team": {
     "institution_name": "Columbia University Medical Center",
     "institution_code": "CUMC",
     "ordering_provider_first_name": "Michael",
     "ordering_provider_last_name": "Torres",
+    "ordering_provider_email": "mt3201@cumc.columbia.edu",
     "primary_contact_first_name": null,
     "primary_contact_last_name": null
   },

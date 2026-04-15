@@ -19,6 +19,10 @@ class AgentState(TypedDict, total=False):
     order: Order
     input_is_pdf: bool
 
+    # Multi-document inputs
+    document_texts: dict[str, str]  # {"order_summary": "...", "physician_notes": "...", ...}
+    cross_reference: dict  # Cross-reference findings from document analyzer
+
     # Enrichment
     test_catalog_entry: TestCatalogEntry | None
     payor_rule: PayorRule | None

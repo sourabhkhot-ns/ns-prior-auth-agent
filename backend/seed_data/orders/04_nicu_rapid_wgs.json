@@ -37,16 +37,16 @@
       {
         "name": "Multiple Congenital Anomalies",
         "category": "Congenital",
-        "custom_value": "Congenital diaphragmatic hernia, tetralogy of Fallot, micrognathia, respiratory failure"
+        "custom_value": "Left congenital diaphragmatic hernia (Bochdalek type, surgically repaired DOL 2 by Dr. Karen Sato, pediatric surgery), tetralogy of Fallot (confirmed on echocardiogram DOL 1 — VSD, overriding aorta, right ventricular outflow tract obstruction, right ventricular hypertrophy), Pierre Robin sequence with severe micrognathia (mandibular length <3rd percentile) requiring prone positioning for airway management, respiratory failure requiring mechanical ventilation since birth."
       }
     ],
     "genes_of_interest": [],
     "prior_genetic_testing": true,
-    "prior_testing_details": "STAT chromosomal microarray sent on DOL 1, results pending. FISH for 22q11.2 deletion — negative.",
-    "supplemental_notes": "4-day-old female in NICU on mechanical ventilation. Born at 37 weeks via emergency C-section for fetal distress. Multiple congenital anomalies identified: left congenital diaphragmatic hernia (repaired DOL 2), tetralogy of Fallot, micrognathia. Genetics consulted DOL 1. Dr. Rachel Okonkwo (board-certified Medical Geneticist) recommends rapid WGS to guide surgical planning and prognostication. Pre-test counseling completed with parents by Amanda Liu, CGC.",
+    "prior_testing_details": "1) STAT chromosomal microarray ordered DOL 1 — results PENDING (expected within 5 days). 2) FISH for 22q11.2 deletion (DiGeorge syndrome) — NEGATIVE (reported DOL 3). FISH was prioritized given phenotypic overlap with 22q11.2 deletion syndrome (cardiac defect + micrognathia), but negative result does not rule out other microdeletions or single-gene disorders.",
+    "supplemental_notes": "4-day-old female in NICU at Lurie Children's Hospital on mechanical ventilation (conventional ventilation, FiO2 0.45, PEEP 6). Born at 37+2 weeks via emergency C-section for fetal distress (persistent late decelerations). Birth weight 2,650g (25th percentile). Apgar 4/6/7.\n\nGenetics consulted DOL 1 by NICU attending Dr. Marcus Webb. Evaluated by Dr. Rachel Okonkwo, MD, FACMG (board-certified Clinical Geneticist, ABMGG #2013-2104) on DOL 1. Geneticist assessment: 'Multiple congenital anomalies involving diaphragm, heart, and craniofacial structures. Phenotype is not classic for 22q11.2 deletion (no thymic hypoplasia, calcium normal). Differential includes: Fryns syndrome, Cornelia de Lange syndrome, CHARGE syndrome, Kabuki syndrome, and novel genetic etiologies. Rapid WGS recommended to guide surgical planning — cardiac surgical team needs to know if there is a syndromic diagnosis that affects surgical risk or prognosis before proceeding with TOF repair.'\n\nPre-test genetic counseling completed DOL 1 with both parents by Amanda Liu, MS, CGC (ABGC #2020-CGC-05182). Parents counseled on rapid timeline, possible outcomes, limitations, implications for future pregnancies. Both parents consented. Informed consent on file.\n\nRapid WGS ordered as proband-only (no parental samples at this time) to maximize turnaround. Parental samples collected and banked for follow-up trio analysis if needed.",
     "is_inpatient": true,
-    "family_history": "Non-consanguineous parents. No known family history of congenital anomalies or genetic conditions. One healthy 3-year-old sibling.",
-    "additional_info": "URGENT — acutely ill neonate. Results needed to inform cardiac surgical planning. Multidisciplinary team conference scheduled for DOL 10."
+    "family_history": "Non-consanguineous parents. Mother (age 29, African American) — healthy, G2P1 (prior uncomplicated pregnancy, healthy 3-year-old son). Father (age 32, European descent) — healthy. No known family history of congenital anomalies, genetic conditions, or congenital heart disease on either side. No history of pregnancy loss.",
+    "additional_info": "URGENT — acutely ill neonate. Multidisciplinary team conference scheduled DOL 10 with cardiology, genetics, neonatology, and surgery to determine surgical timing for TOF repair. Genetic diagnosis will directly impact: 1) Surgical risk stratification — some syndromic diagnoses carry higher perioperative mortality, 2) Prognosis for neurodevelopment — affects goals-of-care discussions with family, 3) Surveillance protocol — additional organ systems to monitor depending on diagnosis, 4) Recurrence risk counseling for future pregnancies.\n\nNote: Aetna considers rapid WES/WGS for acutely ill patients age 21 or under — this patient qualifies as acutely ill neonate in NICU. However, Aetna's policy states rapid testing is covered when standard criteria are also met."
   },
   "care_team": {
     "institution_name": "Ann & Robert H. Lurie Children's Hospital",
@@ -63,10 +63,12 @@
     "collection_date": "2026-04-12"
   },
   "documents": [
-    {"title": "Genetics_Consult_Note_DOL1.pdf", "document_type": "Clinical Information"},
+    {"title": "Genetics_Consultation_Note_DOL1.pdf", "document_type": "Clinical Information"},
     {"title": "Genetic_Counseling_Note_DOL1.pdf", "document_type": "Clinical Information"},
-    {"title": "FISH_22q11_Report.pdf", "document_type": "Clinical Information"},
+    {"title": "FISH_22q11_Negative_Report.pdf", "document_type": "Clinical Information"},
+    {"title": "Echocardiogram_TOF_DOL1.pdf", "document_type": "Clinical Information"},
     {"title": "NICU_Admission_Summary.pdf", "document_type": "Clinical Information"},
+    {"title": "CDH_Surgical_Report_DOL2.pdf", "document_type": "Clinical Information"},
     {"title": "Aetna_Insurance_Card.jpg", "document_type": "Insurance Card"},
     {"title": "Requisition.pdf", "document_type": "Requisition"}
   ]

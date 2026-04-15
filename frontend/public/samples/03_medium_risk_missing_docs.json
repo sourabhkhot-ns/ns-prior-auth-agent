@@ -55,21 +55,21 @@
       {
         "name": "Epileptic Encephalopathy",
         "category": "Neurological",
-        "custom_value": "Seizure onset at 4 months, daily myoclonic jerks and focal seizures"
+        "custom_value": "Seizure onset at 4 months of age. Daily myoclonic jerks (clusters of 5-15 spasms upon waking) and focal seizures (right arm tonic posturing with head version, lasting 30-90 seconds, 2-3 per day). EEG (2025-03-15) shows hypsarrhythmia pattern — chaotic high-amplitude slow waves with multifocal spikes. Diagnosed as infantile epileptic spasms syndrome (West syndrome)."
       },
       {
         "name": "Hypotonia",
         "category": "Neurological",
-        "custom_value": "Marked axial hypotonia since birth, poor head control"
+        "custom_value": "Marked axial hypotonia since birth. Poor head control at 5 months. Unable to sit with support. Decreased deep tendon reflexes throughout. CK level normal (85 U/L)."
       }
     ],
-    "genes_of_interest": ["SCN1A", "SCN2A", "KCNQ2", "CDKL5", "STXBP1"],
+    "genes_of_interest": ["SCN1A", "SCN2A", "KCNQ2", "CDKL5", "STXBP1", "ARX", "FOXG1", "MECP2", "SLC25A22", "SPTAN1"],
     "prior_genetic_testing": false,
     "prior_testing_details": null,
-    "supplemental_notes": "Neurology referral for infantile epileptic encephalopathy. EEG shows hypsarrhythmia. Brain MRI shows mild diffuse cerebral volume loss. No dysmorphic features noted.",
+    "supplemental_notes": "Seen by Dr. Emily Nakamura, pediatric neurologist (not a medical geneticist) at Lucile Packard Children's Hospital. Brain MRI (2025-02-28): mild diffuse cerebral volume loss, thin corpus callosum, no structural malformation or migration abnormality. No dysmorphic features on exam. Metabolic workup: plasma amino acids normal, urine organic acids normal, CSF neurotransmitters not yet obtained. Currently on levetiracetam 40mg/kg/day and vigabatrin 100mg/kg/day with ongoing daily seizures — refractory to current regimen.\n\nNo genetics consultation obtained. No genetic counseling performed. Neurologist ordering WES directly due to severity of presentation and treatment resistance. Notes state: 'Given refractory infantile spasms with hypsarrhythmia and hypotonia, genetic etiology is suspected. WES may identify a targetable channelopathy (e.g., SCN2A gain-of-function amenable to sodium channel blockers) that would change management.'",
     "is_inpatient": false,
-    "family_history": "Parents are non-consanguineous. No family history of epilepsy or developmental delay. One healthy older sibling.",
-    "additional_info": "Currently on levetiracetam and vigabatrin with poor seizure control."
+    "family_history": "Parents are non-consanguineous (both from Gujarat, India, different communities). No family history of epilepsy, developmental delay, or neuromuscular disease. One healthy older sibling (sister, age 4). Paternal uncle with childhood febrile seizures (resolved). No pregnancy complications — full term, uncomplicated SVD, Apgar 8/9.",
+    "additional_info": "Key gaps: 1) No medical geneticist consultation — ordering provider is a neurologist. UHC requires medical geneticist, neonatologist, neurologist, immunologist, or developmental pediatrician (neurologist qualifies). 2) No genetic counseling documentation — UHC recommends pre-test counseling. 3) No prior targeted panel testing — epilepsy gene panel would typically be tried before WES, but physician argues WES is more efficient given multi-system findings. 4) Metabolic workup incomplete — CSF studies not obtained."
   },
   "care_team": {
     "institution_name": "Lucile Packard Children's Hospital",
@@ -86,8 +86,9 @@
     "collection_date": "2026-04-08"
   },
   "documents": [
-    {"title": "Neurology_Note_20260405.pdf", "document_type": "Clinical Information"},
-    {"title": "EEG_Report_20260401.pdf", "document_type": "Clinical Information"},
-    {"title": "UHC_Card.jpg", "document_type": "Insurance Card"}
+    {"title": "Neurology_Consultation_Note_20260405.pdf", "document_type": "Clinical Information"},
+    {"title": "EEG_Report_Hypsarrhythmia_20250315.pdf", "document_type": "Clinical Information"},
+    {"title": "Brain_MRI_Report_20250228.pdf", "document_type": "Clinical Information"},
+    {"title": "UHC_Insurance_Card.jpg", "document_type": "Insurance Card"}
   ]
 }

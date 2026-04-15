@@ -10,6 +10,7 @@ from app.config import settings
 from app.db.seed import init_db_and_seed
 from app.api.routes_evaluate import router as evaluate_router
 from app.api.routes_evaluate_stream import router as evaluate_stream_router
+from app.api.routes_evaluate_documents import router as evaluate_documents_router
 from app.api.routes_catalog import router as catalog_router
 from app.api.routes_rules import router as rules_router
 
@@ -47,6 +48,7 @@ app.add_middleware(
 
 app.include_router(evaluate_router)
 app.include_router(evaluate_stream_router)
+app.include_router(evaluate_documents_router)
 app.include_router(catalog_router)
 app.include_router(rules_router)
 

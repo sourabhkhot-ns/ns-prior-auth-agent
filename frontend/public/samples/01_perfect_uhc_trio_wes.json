@@ -56,21 +56,21 @@
       {
         "name": "Multiple Congenital Anomalies",
         "category": "Congenital",
-        "custom_value": "Atrial septal defect, bilateral congenital hydronephrosis, global developmental delay"
+        "custom_value": "Atrial septal defect with moderate left-to-right shunt on echocardiogram (2024-08-12), bilateral congenital hydronephrosis grade III on renal ultrasound (2024-07-20), global developmental delay — not sitting independently at 14 months, absent babbling, poor visual tracking"
       },
       {
         "name": "Global Developmental Delay",
         "category": "Neurological",
-        "custom_value": "Not sitting independently at 14 months, absent babbling"
+        "custom_value": "Bayley-III assessment (2024-12-01): Cognitive composite 62 (>2 SD below mean), Motor composite 58. Not meeting any 12-month milestones at 14 months."
       }
     ],
     "genes_of_interest": [],
     "prior_genetic_testing": true,
-    "prior_testing_details": "Chromosomal microarray (CMA) performed 2024-09 — normal result. Targeted panel for Noonan spectrum — negative.",
-    "supplemental_notes": "Patient evaluated by Dr. Sarah Kim, Medical Geneticist (board-certified ABMGG). Pre-test genetic counseling completed 2026-03-28 by Jessica Park, CGC. Standard workup including echocardiogram, renal ultrasound, brain MRI completed. No single-gene etiology identified. WES recommended as most efficient next step given multi-system involvement.",
+    "prior_testing_details": "1) Chromosomal microarray (CMA) performed 2024-09-15 at Boston Children's Hospital cytogenetics lab — NORMAL result, no pathogenic CNVs detected, no regions of homozygosity >5Mb. 2) Targeted panel for Noonan spectrum disorders (RASopathy panel, 19 genes including PTPN11, SOS1, RAF1, KRAS, BRAF) — performed 2025-01-12 at GeneDx — NEGATIVE, no pathogenic or likely pathogenic variants identified. 3) Karyotype 46,XX — normal female.",
+    "supplemental_notes": "Patient evaluated by Dr. Sarah Kim, MD, FACMG (board-certified Medical Geneticist, ABMGG #2015-1847) at Boston Children's Hospital Division of Genetics and Genomics on 2026-03-28. Pre-test genetic counseling completed same date by Jessica Park, MS, CGC (board-certified genetic counselor, ABGC #2018-CGC-03291). Counseling covered: test purpose, possible outcomes (positive, negative, VUS), limitations, implications for family, GINA protections. Informed consent signed and on file.\n\nStandard clinical workup completed: echocardiogram (ASD confirmed), renal ultrasound (bilateral hydronephrosis), brain MRI (2024-10-05 — mild thinning of corpus callosum, no other structural abnormality), metabolic screen (plasma amino acids, urine organic acids, acylcarnitine profile — all normal), thyroid function — normal.\n\nClinical presentation does not fit a well-delineated genetic syndrome. Multi-system involvement (cardiac, renal, neurodevelopmental) with negative CMA and RASopathy panel supports WES as the most efficient diagnostic approach. Test results will directly impact medical management: positive result would guide cardiology surveillance protocol, renal follow-up frequency, developmental intervention intensity, and family recurrence risk counseling.",
     "is_inpatient": false,
-    "family_history": "No known consanguinity. Maternal uncle with learning difficulties. No other family members with congenital anomalies.",
-    "additional_info": "Patient referred from pediatric cardiology after echocardiogram revealed ASD. Subsequent evaluation found bilateral hydronephrosis and developmental delay, prompting genetics referral."
+    "family_history": "Non-consanguineous parents of East Asian descent (both Han Chinese). Maternal uncle (age 35) with mild learning difficulties — never formally evaluated. Maternal grandmother with type 2 diabetes. Paternal side unremarkable. No other family members with congenital anomalies, intellectual disability, seizures, or known genetic conditions. No history of pregnancy loss or infant death.",
+    "additional_info": "Patient initially referred from pediatric cardiology (Dr. James Wu) after echocardiogram revealed ASD at age 2 months. Subsequent developmental concerns prompted genetics referral. Renal ultrasound obtained as part of syndromic workup revealed bilateral hydronephrosis. Patient currently receiving early intervention services (PT, OT, speech therapy 3x/week each). Trio testing requested — both parents available and consented for comparator analysis."
   },
   "care_team": {
     "institution_name": "Boston Children's Hospital",
@@ -89,8 +89,11 @@
   "documents": [
     {"title": "Genetics_Consultation_Note_20260328.pdf", "document_type": "Clinical Information"},
     {"title": "Genetic_Counseling_Note_20260328.pdf", "document_type": "Clinical Information"},
-    {"title": "CMA_Report_20240915.pdf", "document_type": "Clinical Information"},
-    {"title": "Noonan_Panel_Report_20250112.pdf", "document_type": "Clinical Information"},
+    {"title": "CMA_Report_Normal_20240915.pdf", "document_type": "Clinical Information"},
+    {"title": "RASopathy_Panel_Negative_20250112.pdf", "document_type": "Clinical Information"},
+    {"title": "Echocardiogram_Report_20240812.pdf", "document_type": "Clinical Information"},
+    {"title": "Brain_MRI_Report_20241005.pdf", "document_type": "Clinical Information"},
+    {"title": "Renal_Ultrasound_20240720.pdf", "document_type": "Clinical Information"},
     {"title": "UHC_Insurance_Card.jpg", "document_type": "Insurance Card"},
     {"title": "Order_Requisition.pdf", "document_type": "Requisition"}
   ]

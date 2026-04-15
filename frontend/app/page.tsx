@@ -2,7 +2,9 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { OrderForm } from "./components/order-form";
+import { DocumentUpload } from "./components/document-upload";
 import { AgentPipeline } from "./components/agent-pipeline";
+import { UploadStatus, UploadStatusData } from "./components/upload-status";
 import { EvaluationResult } from "./components/evaluation-result";
 
 export type AgentStatus = "pending" | "running" | "completed" | "skipped" | "error";
@@ -45,8 +47,10 @@ export interface EvaluationData {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 
 export default function Home() {
+  const [mode, setMode] = useState<"documents" | "json">("documents");
   const [agents, setAgents] = useState<AgentUpdate[]>([]);
   const [result, setResult] = useState<EvaluationData | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<UploadStatusData | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const feedRef = useRef<HTMLDivElement>(null);
@@ -56,10 +60,12 @@ export default function Home() {
     if (feedRef.current) {
       feedRef.current.scrollTo({ top: feedRef.current.scrollHeight, behavior: "smooth" });
     }
-  }, [agents, result]);
+  }, [agents, result, uploadStatus]);
 
   const handleSSEEvent = (event: string, data: unknown) => {
-    if (event === "pipeline") {
+    if (event === "upload_status") {
+      setUploadStatus(data as UploadStatusData);
+    } else if (event === "pipeline") {
       const pipelineData = data as { agents: AgentUpdate[] };
       setAgents(pipelineData.agents);
     } else if (event === "agent_update") {
@@ -112,7 +118,7 @@ export default function Home() {
     setError("Evaluation cancelled");
   }, []);
 
-  const runEvaluation = async (orderJson: string) => {
+  const runDocumentEvaluation = async (files: Record<string, File>) => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -121,6 +127,40 @@ export default function Home() {
     setResult(null);
     setError(null);
     setAgents([]);
+    setUploadStatus(null);
+
+    try {
+      const formData = new FormData();
+      for (const [key, file] of Object.entries(files)) {
+        formData.append(key, file);
+      }
+
+      const response = await fetch(`${API_URL}/api/v1/evaluate/documents/stream`, {
+        method: "POST",
+        body: formData,
+        signal: controller.signal,
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+      await processStream(response);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      setError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      setIsRunning(false);
+      abortRef.current = null;
+    }
+  };
+
+  const runJsonEvaluation = async (orderJson: string) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    setIsRunning(true);
+    setResult(null);
+    setError(null);
+    setAgents([]);
+    setUploadStatus(null);
 
     try {
       const response = await fetch(`${API_URL}/api/v1/evaluate/stream`, {
@@ -140,43 +180,19 @@ export default function Home() {
     }
   };
 
-  const runPdfEvaluation = async (file: File) => {
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    setIsRunning(true);
-    setResult(null);
-    setError(null);
-    setAgents([]);
-
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const response = await fetch(`${API_URL}/api/v1/evaluate/pdf/stream`, {
-        method: "POST",
-        body: formData,
-        signal: controller.signal,
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
-      await processStream(response);
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") return;
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setIsRunning(false);
-      abortRef.current = null;
-    }
+  const runSampleJsonEvaluation = async (orderJson: string) => {
+    await runJsonEvaluation(orderJson);
   };
 
   const reset = () => {
     setAgents([]);
     setResult(null);
     setError(null);
+    setUploadStatus(null);
     setIsRunning(false);
   };
 
-  const hasActivity = agents.length > 0 || result || error;
+  const hasActivity = agents.length > 0 || result || error || uploadStatus;
 
   return (
     <main className="flex flex-col h-screen max-w-3xl mx-auto w-full">
@@ -194,16 +210,46 @@ export default function Home() {
       <div ref={feedRef} className="flex-1 overflow-y-auto px-6 pb-6">
         {!hasActivity && (
           <div className="animate-fade-in">
-            <OrderForm
-              onSubmitJson={runEvaluation}
-              onSubmitPdf={runPdfEvaluation}
-              isRunning={isRunning}
-            />
+            {/* Mode toggle */}
+            <div className="flex gap-4 pt-6 mb-2">
+              <button
+                onClick={() => setMode("documents")}
+                className={`text-xs pb-1 transition-colors ${
+                  mode === "documents"
+                    ? "text-[var(--foreground)] border-b border-[var(--foreground)]"
+                    : "text-[var(--muted)] hover:text-[var(--foreground)]"
+                }`}
+              >
+                Documents
+              </button>
+              <button
+                onClick={() => setMode("json")}
+                className={`text-xs pb-1 transition-colors ${
+                  mode === "json"
+                    ? "text-[var(--foreground)] border-b border-[var(--foreground)]"
+                    : "text-[var(--muted)] hover:text-[var(--foreground)]"
+                }`}
+              >
+                JSON / Samples
+              </button>
+            </div>
+
+            {mode === "documents" ? (
+              <DocumentUpload onSubmit={runDocumentEvaluation} isRunning={isRunning} />
+            ) : (
+              <OrderForm
+                onSubmitJson={runSampleJsonEvaluation}
+                onSubmitPdf={async () => {}}
+                isRunning={isRunning}
+              />
+            )}
           </div>
         )}
 
         {hasActivity && (
           <div className="space-y-2">
+            {uploadStatus && <UploadStatus data={uploadStatus} />}
+
             <AgentPipeline agents={agents} />
 
             {error && (

@@ -46,21 +46,21 @@
       {
         "name": "Autism Spectrum Disorder",
         "category": "Neurological",
-        "custom_value": "Diagnosed at age 3, non-verbal, stereotypic hand movements"
+        "custom_value": "Diagnosed at age 3 by developmental pediatrician (Dr. Lisa Monroe, Jacksonville) via ADOS-2 (module 1, comparison score 8/10) and clinical evaluation. Non-verbal — uses AAC device for basic requests. Stereotypic hand movements (hand flapping, finger flicking). Significant sensory aversions (food texture, loud sounds). IQ not formally assessed due to limited cooperation."
       },
       {
-        "name": "Developmental Delay",
+        "name": "Global Developmental Delay",
         "category": "Neurological",
-        "custom_value": "Gross and fine motor delays, speech delay"
+        "custom_value": "Gross motor: walking independently but ataxic gait, frequently falls. Fine motor: cannot stack blocks, no pincer grasp at age 5. Speech: non-verbal, no words, limited gestures. Self-care: not toilet trained, requires full assistance with feeding and dressing."
       }
     ],
     "genes_of_interest": [],
     "prior_genetic_testing": false,
     "prior_testing_details": null,
-    "supplemental_notes": "Patient seen by pediatrician Dr. Thomas Reed. ASD diagnosed at age 3 via ADOS-2. Non-verbal, significant behavioral challenges. Family requesting genetic testing to understand cause.",
+    "supplemental_notes": "Order placed by Dr. Thomas Reed, general pediatrician at Riverside Pediatrics (community practice, not an academic center). Dr. Reed is NOT a medical geneticist, neurologist, or developmental pediatrician. No genetics referral has been made. No genetic counseling has been performed — no CGC involvement documented.\n\nPediatrician note states: 'Mother requesting genetic testing to understand cause of autism. Child is non-verbal with significant developmental delays. Family wants answers. Ordering WGS per mother's request.'\n\nNo documentation of: (1) geneticist consultation, (2) pre-test counseling, (3) alternate etiologies considered, (4) standard clinical workup (no CMA, no fragile X testing, no metabolic screen). No brain MRI performed. No hearing evaluation documented.\n\nAetna requires: board-certified geneticist consultation (or neurologist/dev ped for dev delay), pre-test counseling, alternate etiologies ruled out, standard workup completed, and clinical presentation must include syndromic features for ASD-based indication. This order has NONE of these.",
     "is_inpatient": false,
-    "family_history": "Maternal cousin with ADHD. No other known developmental or genetic conditions.",
-    "additional_info": null
+    "family_history": "Mother (Rebecca, age 37) — anxiety disorder, otherwise healthy. Father (not involved, limited history available) — reported to have ADHD per mother. Maternal cousin with ADHD. Maternal grandmother with depression. No known family history of autism, intellectual disability, genetic syndromes, or consanguinity. One younger sibling (brother, age 2) — meeting milestones, no concerns.",
+    "additional_info": "This order has multiple critical deficiencies for Aetna PA approval:\n1) PROVIDER: General pediatrician ordering — Aetna requires geneticist, neurologist, or developmental pediatrician\n2) COUNSELING: No genetic counseling performed — Aetna requires pre-test and post-test counseling by independent provider\n3) PRIOR WORKUP: No CMA, no fragile X, no metabolic screen, no MRI — Aetna requires standard clinical workup completed\n4) ALTERNATE ETIOLOGIES: Not documented as considered or ruled out\n5) SYNDROMIC FEATURES: Aetna requires ASD with 'syndromic features' for WES/WGS — non-syndromic ASD alone does not qualify\n6) TEST APPROPRIATENESS: No documentation that WGS is more efficient than targeted testing\n7) MEDICAL IMPACT: No documentation of how results would change management"
   },
   "care_team": {
     "institution_name": "Riverside Pediatrics",
@@ -78,6 +78,6 @@
   },
   "documents": [
     {"title": "Pediatric_Visit_Note_20260409.pdf", "document_type": "Clinical Information"},
-    {"title": "Aetna_Card.jpg", "document_type": "Insurance Card"}
+    {"title": "Aetna_Insurance_Card.jpg", "document_type": "Insurance Card"}
   ]
 }

@@ -1,0 +1,76 @@
+{
+  "order_id": "PT-2025-88341",
+  "test_code": "81432",
+  "test_name": "Hereditary Cancer Panel — BRCA1/2 + 82 genes",
+  "patient": {
+    "first_name": "Sandra",
+    "last_name": "Hartmann",
+    "date_of_birth": "1972-03-18",
+    "sex": "FEMALE",
+    "ethnicity": ["EUROPEAN"],
+    "medical_record_number": "MRN-2024-88341",
+    "email": "shartmann72@email.com",
+    "phone": "6175550148",
+    "address": "4217 Birchwood Court, Newton, MA 02459",
+    "relatives": []
+  },
+  "insurance": {
+    "payment_method": "INSURANCE",
+    "insurance_type": "COMMERCIAL",
+    "primary": {
+      "company_name": "Aetna",
+      "company_code": "AETNA",
+      "member_id": "AET-W88473920",
+      "group_id": "GRP-451920-M",
+      "authorization_number": null,
+      "relationship": "SELF",
+      "type": "PRIMARY"
+    }
+  },
+  "clinical_info": {
+    "icd10_codes": [
+      {"code": "C50.912", "description": "Malignant neoplasm, unspecified site, left female breast"},
+      {"code": "Z15.01", "description": "Genetic susceptibility to malignant neoplasm of breast"},
+      {"code": "Z80.3", "description": "Family history of malignant neoplasm of breast"},
+      {"code": "Z84.81", "description": "Family history of carrier of genetic disease"}
+    ],
+    "indications": [
+      {
+        "name": "Hereditary Breast and Ovarian Cancer Syndrome",
+        "category": "Cancer",
+        "custom_value": "52-year-old female with newly diagnosed Stage IIB invasive ductal carcinoma of the left breast (ER+/PR+/HER2-). Strong paternal-lineage family history of ovarian and breast cancer. Meets NCCN criteria for germline panel testing (Genetic/Familial High-Risk Assessment: Breast, Ovarian, and Pancreatic, v2.2025)."
+      }
+    ],
+    "genes_of_interest": ["BRCA1", "BRCA2", "ATM", "BARD1", "BRIP1", "CDH1", "CHEK2", "MLH1", "MSH2", "MSH6", "PALB2", "PMS2", "PTEN", "RAD51C", "RAD51D", "STK11", "TP53"],
+    "prior_genetic_testing": true,
+    "prior_testing_details": "1) Somatic tumor NGS panel (FoundationOne CDx equivalent, CPT 81455) completed 2025-09-09: PIK3CA p.E545K (pathogenic, VAF 38% — FDA-approved Alpelisib indicated), TP53 p.R175H (pathogenic, VAF 45%), CDH1 p.E243* (likely pathogenic, VAF 22% — germline correlation recommended). No somatic BRCA1/2 variants detected. TMB 8 mut/Mb (intermediate), MSI stable. 2) BRCA1 full sequence + del/dup (CPT 81162) — APPROVED by Aetna (Auth# AET-PA-20250904), performed at Invitae. 3) Pathology: core needle biopsy left breast (2025-08-28) — IDC, Nottingham grade 3 (8/9), 2.4cm, ER+ Allred 8/8, PR+ Allred 6/8, HER2 IHC 1+ negative, Ki-67 42%, LVI present, PD-L1 CPS 5.",
+    "supplemental_notes": "Ordering physician: Dr. Priya Venkataraman, MD, Medical Oncology, NPI 1467830295, Newton-Wellesley Cancer Center. Physician attests: 'Germline hereditary cancer panel testing (CPT 81432) is medically necessary to: (1) inform surgical planning — bilateral mastectomy vs. lumpectomy decision is contingent on germline result; (2) assess eligibility for PARP inhibitor therapy (olaparib, niraparib) should disease progress to metastatic stage; (3) guide oncologic surveillance and risk-reduction interventions per NCCN; (4) enable cascade testing for first-degree relatives.' Signed electronically 2025-09-05.\n\nPer NCCN Guidelines (v2.2025): patient meets testing criteria — personal history of breast cancer diagnosed at age 52 (female), plus qualifying family history (first-degree relative equivalent with ovarian cancer under age 50 and breast cancer under age 50 on same lineage).\n\nPre-test genetic counseling provided 2025-09-04 by Emily Torres, MS, CGC (Board Cert. #2019-CGC-04517), 45-minute session. Covered: possible result categories, test limitations, hereditary implications for relatives, cascade testing options, GINA protections. Patient verbalized understanding and signed informed consent (on file).\n\nAdditional context from somatic panel: CDH1 somatic variant (likely pathogenic) raises concern for hereditary diffuse gastric cancer syndrome if confirmed germline — requires separate risk management per NCCN.",
+    "is_inpatient": false,
+    "family_history": "Paternal grandmother: ovarian cancer, diagnosed age 49, deceased age 54. Paternal aunt: breast cancer, diagnosed age 42, currently in remission. No prior genetic testing documented in family. Patient has not undergone prior germline testing. Two-generation paternal lineage pattern consistent with hereditary breast and ovarian cancer (HBOC) syndrome — meets NCCN criteria. Mother (age 80): healthy, no cancer history. Father (age 81): prostate cancer diagnosed age 75 (low-grade, watchful waiting). One brother (age 49): healthy. One sister (age 47): healthy, offered cascade testing.",
+    "additional_info": "Prior auth status: CPT 81432 (hereditary panel) — PENDING. CPT 81162 (BRCA1 full analysis) — APPROVED (Auth# AET-PA-20250904). CPT 81433 (hereditary panel dup/del) — PENDING. CPT 81455 (somatic NGS) — APPROVED (Auth# AET-PA-20250830). Lab: Invitae Corporation, San Francisco CA. Accession: INV-2025-GRM-18840. Sample: blood EDTA, received at lab, in analysis. Expected TAT: 10-14 business days. Results to be reviewed in multidisciplinary tumor board."
+  },
+  "care_team": {
+    "institution_name": "Newton-Wellesley Cancer Center",
+    "institution_code": "NWCC",
+    "ordering_provider_first_name": "Priya",
+    "ordering_provider_last_name": "Venkataraman",
+    "ordering_provider_email": "pvenkataraman@nwh.org",
+    "primary_contact_first_name": "Emily",
+    "primary_contact_last_name": "Torres"
+  },
+  "sample": {
+    "status": "COLLECTED",
+    "sample_type": "Blood in EDTA (Purple-Top)",
+    "collection_date": "2025-09-05"
+  },
+  "documents": [
+    {"title": "Patient_Details_PT-2025-88341.pdf", "document_type": "Clinical Information"},
+    {"title": "Physician_Notes_PN-2025-88341.pdf", "document_type": "Clinical Information"},
+    {"title": "Test_Reports_TR-2025-88341.pdf", "document_type": "Clinical Information"},
+    {"title": "Genetic_Counseling_Note_20250904.pdf", "document_type": "Clinical Information"},
+    {"title": "Pathology_Report_20250902.pdf", "document_type": "Clinical Information"},
+    {"title": "Somatic_NGS_FoundationOne_20250909.pdf", "document_type": "Clinical Information"},
+    {"title": "Aetna_Insurance_Card.jpg", "document_type": "Insurance Card"},
+    {"title": "Requisition.pdf", "document_type": "Requisition"}
+  ]
+}

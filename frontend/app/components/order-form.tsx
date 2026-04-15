@@ -34,6 +34,11 @@ const SAMPLES = [
     label: "High risk — Pediatrician ordering, no geneticist",
     risk: "HIGH",
   },
+  {
+    id: "06_oncology_brca_panel",
+    label: "Oncology — BRCA panel, breast cancer, Aetna",
+    risk: "LOW",
+  },
 ];
 
 function RiskDot({ risk }: { risk: string }) {
