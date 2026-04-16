@@ -1,100 +1,69 @@
-# Prior Authorization Agent
+# Prior Auth Agent
 
-A generic, model-agnostic prior authorization evaluation agent for genomics/diagnostic laboratories. Evaluates test orders against payor-specific rules at the point of order to detect documentation gaps, code mismatches, and denial risks before submission.
+An agent that evaluates genomics lab orders against payor rules **before** a prior authorization is ever submitted — flagging code mismatches, documentation gaps, and medical necessity issues so orders are fixed upstream, not denied downstream.
 
-## Architecture
+Monorepo:
+- **backend/** — FastAPI + LangGraph, 6-agent pipeline over LiteLLM
+- **frontend/** — Next.js + Tailwind, real-time SSE agent pipeline UI
 
-```
-prior-auth-agent/
-├── backend/         Python FastAPI + LangGraph agent pipeline
-├── frontend/        Next.js UI with real-time agent progress
-├── SPEC.md          Full system specification
-└── CLAUDE.md        Development guidelines
-```
-
-### Agent Pipeline (LangGraph)
-
-```
-Order → Parser → Enrichment → Code Evaluator → Criteria Evaluator → Gap Detector → Risk Scorer → PA Evaluation
-```
-
-6 agents, orchestrated sequentially. Code and criteria evaluation could run in parallel (supported by architecture).
-
-### Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Agent Framework | LangGraph |
-| LLM | LiteLLM (model-agnostic — Groq, Claude, GPT, Gemini, etc.) |
-| Backend | Python, FastAPI |
-| Frontend | Next.js, Tailwind CSS |
-| Database | SQLite (dev) / PostgreSQL (prod) |
-
-## Quick Start
-
-### Backend
+## Quickstart
 
 ```bash
+# 1. Backend
 cd backend
-python3 -m venv .venv
-source .venv/bin/activate
+python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-cp .env.example .env
-# Edit .env — set LLM_MODEL and API key
-uvicorn app.main:app --port 8001
-```
+cp .env.example .env            # set LLM_MODEL + the matching API key
+uvicorn app.main:app --port 8001 --reload
 
-### Frontend
-
-```bash
+# 2. Frontend (separate terminal)
 cd frontend
 npm install
 npm run dev
+
+# 3. Open http://localhost:3000
 ```
 
-Open http://localhost:3000
+## Pipeline
 
-## Configuration
-
-All LLM config is in `backend/.env`:
-
-```env
-# Groq (fast, free tier)
-LLM_MODEL=groq/llama-3.3-70b-versatile
-GROQ_API_KEY=gsk_...
-
-# Or Anthropic
-LLM_MODEL=anthropic/claude-sonnet-4-20250514
-ANTHROPIC_API_KEY=sk-ant-...
-
-# Or OpenAI
-LLM_MODEL=openai/gpt-4o
-OPENAI_API_KEY=sk-...
+```
+document_analyzer ─┐
+order_parser ──────┼─► enrichment ─► ┌─► code_evaluator ─────┐
+                                     └─► criteria_evaluator ─┴─► gap_detector ─► risk_scorer
 ```
 
-One env var change to swap models. No code changes.
+`code_evaluator` and `criteria_evaluator` run concurrently — they don't depend on each other. Every LLM call is logged with token counts, cost, and latency; each evaluation ends with a summary line.
 
-## API Endpoints
+## LLM providers
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/v1/evaluate` | Evaluate order (JSON body) |
-| POST | `/api/v1/evaluate/pdf` | Evaluate order from PDF upload |
-| POST | `/api/v1/evaluate/stream` | SSE streaming evaluation |
-| POST | `/api/v1/evaluate/pdf/stream` | SSE streaming PDF evaluation |
-| GET | `/api/v1/catalog/tests` | List test catalog |
-| GET | `/api/v1/rules/payors` | List payor rules |
-| GET | `/api/v1/health` | Health check |
+Any LiteLLM-supported model works. Swap `LLM_MODEL` in `backend/.env`:
 
-## Seed Data
+| Provider | `LLM_MODEL` | Notes |
+|---|---|---|
+| OpenAI | `openai/gpt-4o-mini` | Set `OPENAI_API_KEY` |
+| Anthropic | `anthropic/claude-sonnet-4-5` | Set `ANTHROPIC_API_KEY` |
+| Google | `gemini/gemini-1.5-flash` | Set `GOOGLE_API_KEY` |
+| Groq | `groq/llama-3.3-70b-versatile` | Set `GROQ_API_KEY` (free tier has tight RPM) |
+| Custom OpenAI-compatible (MLX / vLLM / Ollama) | `openai/<model>` | Also set `LLM_API_BASE`; set `OPENAI_API_KEY=dummy` |
 
-- **Payor rules**: UnitedHealthcare + Aetna WES/WGS policies (real, from public policy documents)
-- **Test catalog**: 7 Baylor Genetics test codes with CPT mappings
-- **Sample order**: Test order for end-to-end testing
+Restart uvicorn after `.env` changes — the reloader doesn't watch it.
 
-## Key Design Decisions
+## Endpoints
 
-- Agent evaluates codes as provided — never recommends alternatives
-- Lab-agnostic: test catalog and payor rules are configurable
-- Model-agnostic: swap LLM provider via config
-- Streaming UI shows real-time agent progress
+- `POST /api/v1/evaluate` — non-streaming JSON order
+- `POST /api/v1/evaluate/stream` — SSE streaming for a JSON order
+- `POST /api/v1/evaluate/documents/stream` — SSE streaming for multi-PDF upload
+- `GET /api/v1/catalog/tests` — list test catalog
+- `GET /api/v1/rules/payors` — list payor rules
+- `GET /api/v1/health` — health + current model
+
+## Project docs
+
+- `CLAUDE.md` — development guidelines, architecture detail, conventions
+- `backend/CLAUDE.md` — backend-specific layout and conventions
+- `frontend/CLAUDE.md` — frontend-specific layout and conventions
+- `SPEC.md` — full system specification (if present)
+
+## Boundaries
+
+The agent **evaluates**; it does not submit PAs, generate alternate codes, or store patient PII beyond the evaluation scope.
