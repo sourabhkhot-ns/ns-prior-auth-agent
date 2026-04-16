@@ -125,6 +125,7 @@ async def document_analyzer_node(state: AgentState) -> dict:
         result = await llm_call_json(
             system_prompt=DOCUMENT_ANALYZER_SYSTEM,
             user_prompt=DOCUMENT_ANALYZER_USER.format(documents_text=formatted),
+            tag="document_analyzer",
         )
 
         order_data = result.get("order", {})

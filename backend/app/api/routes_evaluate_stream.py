@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from app.agents.state import AgentState
 from app.core.pdf_parser import extract_text_from_pdf
+from app.core.llm import start_usage_tracking, end_usage_tracking
 from app.models.order import Order
 
 from app.agents.order_parser import order_parser_node
@@ -60,6 +61,7 @@ def _build_pipeline(state: AgentState) -> list[list[tuple[str, str, object]]]:
 
 async def _run_pipeline_streaming(state: AgentState):
     """Run the agent pipeline group by group, yielding SSE events."""
+    start_usage_tracking()
     groups = _build_pipeline(state)
     flat = [agent for g in groups for agent in g]
 
@@ -144,6 +146,9 @@ async def _run_pipeline_streaming(state: AgentState):
                     })
 
     evaluation = state.get("evaluation")
+    eval_tag = evaluation.evaluation_id[:8] if evaluation else "failed"
+    end_usage_tracking(eval_tag=eval_tag)
+
     if evaluation:
         yield _sse_event("result", evaluation.model_dump(mode="json"))
     else:

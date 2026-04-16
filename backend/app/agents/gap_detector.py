@@ -64,6 +64,7 @@ async def gap_detector_node(state: AgentState) -> dict:
                 payor_name=payor_rule.payor_name,
                 test_name=test_entry.test_name if test_entry else order.test_name or order.test_code,
             ),
+            tag="gap_detector",
         )
         report = GapReport(
             missing_documents=[GapItem(**item) for item in result.get("missing_documents", [])],

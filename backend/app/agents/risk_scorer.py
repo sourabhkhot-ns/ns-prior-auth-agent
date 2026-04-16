@@ -87,6 +87,7 @@ async def risk_scorer_node(state: AgentState) -> dict:
                 criteria_evaluation=criteria_eval_str,
                 gap_report=gap_str,
             ),
+            tag="risk_scorer",
         )
 
         evaluation = PAEvaluation(

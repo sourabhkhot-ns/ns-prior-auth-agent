@@ -26,6 +26,7 @@ async def order_parser_node(state: AgentState) -> dict:
         result = await llm_call_json(
             system_prompt=ORDER_PARSER_SYSTEM,
             user_prompt=ORDER_PARSER_USER.format(document_text=raw_text),
+            tag="order_parser",
         )
         order = Order.model_validate(result)
         return {"order": order}

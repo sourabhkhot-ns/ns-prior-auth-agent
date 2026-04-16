@@ -9,6 +9,7 @@ from fastapi.responses import StreamingResponse
 
 from app.agents.state import AgentState
 from app.core.pdf_parser import extract_text_from_pdf
+from app.core.llm import start_usage_tracking, end_usage_tracking
 
 from app.agents.document_analyzer import document_analyzer_node
 from app.agents.enrichment import enrichment_node
@@ -39,6 +40,7 @@ async def _run_document_pipeline(state: AgentState, uploaded_docs: list[str], mi
 
     Groups of agents that can run concurrently are declared as sub-lists.
     """
+    start_usage_tracking()
     pipeline: list[list[tuple[str, str, object]]] = [
         [("document_analyzer", "Analyzing uploaded documents", document_analyzer_node)],
         [("enrichment", "Looking up test catalog & payor rules", enrichment_node)],
@@ -139,6 +141,9 @@ async def _run_document_pipeline(state: AgentState, uploaded_docs: list[str], mi
                     })
 
     evaluation = state.get("evaluation")
+    eval_tag = evaluation.evaluation_id[:8] if evaluation else "failed"
+    end_usage_tracking(eval_tag=eval_tag)
+
     if evaluation:
         yield _sse_event("result", evaluation.model_dump(mode="json"))
     else:

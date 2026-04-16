@@ -55,6 +55,7 @@ async def code_evaluator_node(state: AgentState) -> dict:
                 accepted_icd10_info=accepted_icd10_str,
                 exclusions=exclusions_str,
             ),
+            tag="code_evaluator",
         )
         evaluation = CodeEvaluation(
             icd10_results=[CodeResult(**r) for r in result.get("icd10_results", [])],

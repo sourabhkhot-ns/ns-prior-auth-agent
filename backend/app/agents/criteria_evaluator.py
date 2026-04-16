@@ -83,6 +83,7 @@ async def criteria_evaluator_node(state: AgentState) -> dict:
                 prior_testing_requirements=prior_testing_str,
                 exclusions=exclusions_str,
             ),
+            tag="criteria_evaluator",
         )
         evaluation = CriteriaEvaluation(
             criteria_results=[CriterionResult(**r) for r in result.get("criteria_results", [])],
