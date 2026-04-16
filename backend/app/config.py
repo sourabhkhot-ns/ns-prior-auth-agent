@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     llm_model: str = "anthropic/claude-sonnet-4-20250514"
+    llm_api_base: str | None = None
     llm_temperature: float = 0.1
     database_url: str = "sqlite+aiosqlite:///./prior_auth.db"
     log_level: str = "INFO"

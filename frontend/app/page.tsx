@@ -46,11 +46,19 @@ export interface EvaluationData {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 
+interface OrderContext {
+  label: string;         // primary — test name or doc count
+  patient?: string;      // "Maya C."
+  payor?: string;        // "UnitedHealthcare"
+  orderId?: string;      // "PT-2025-…"
+}
+
 export default function Home() {
   const [mode, setMode] = useState<"documents" | "json">("documents");
   const [agents, setAgents] = useState<AgentUpdate[]>([]);
   const [result, setResult] = useState<EvaluationData | null>(null);
   const [uploadStatus, setUploadStatus] = useState<UploadStatusData | null>(null);
+  const [orderContext, setOrderContext] = useState<OrderContext | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const feedRef = useRef<HTMLDivElement>(null);
@@ -128,6 +136,9 @@ export default function Home() {
     setError(null);
     setAgents([]);
     setUploadStatus(null);
+    setOrderContext({
+      label: `${Object.keys(files).length} document${Object.keys(files).length === 1 ? "" : "s"} submitted`,
+    });
 
     try {
       const formData = new FormData();
@@ -163,6 +174,23 @@ export default function Home() {
     setUploadStatus(null);
 
     try {
+      const parsed = JSON.parse(orderJson);
+      const firstName = parsed.patient?.first_name || "";
+      const lastName  = parsed.patient?.last_name || "";
+      const patient = firstName
+        ? `${firstName}${lastName ? " " + lastName.charAt(0) + "." : ""}`
+        : undefined;
+      setOrderContext({
+        label:    parsed.test_name || (parsed.test_code ? `Test ${parsed.test_code}` : "Order"),
+        patient,
+        payor:    parsed.insurance?.primary?.company_name || undefined,
+        orderId:  parsed.order_id || undefined,
+      });
+    } catch {
+      setOrderContext({ label: "Order" });
+    }
+
+    try {
       const response = await fetch(`${API_URL}/api/v1/evaluate/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -189,6 +217,7 @@ export default function Home() {
     setResult(null);
     setError(null);
     setUploadStatus(null);
+    setOrderContext(null);
     setIsRunning(false);
   };
 
@@ -248,6 +277,27 @@ export default function Home() {
 
         {hasActivity && (
           <div className="space-y-2">
+            {orderContext && (
+              <div className="animate-fade-in border border-[var(--border)] bg-[var(--surface)] rounded-lg px-4 py-3 mb-4">
+                <div className="flex items-center gap-2 text-[10px] tracking-widest uppercase text-[var(--muted)] mb-1.5">
+                  <span className="w-1 h-1 rounded-full bg-[var(--accent)]" />
+                  Order in Review
+                </div>
+                <div className="text-sm text-[var(--foreground)] font-medium leading-tight">
+                  {orderContext.label}
+                </div>
+                {(orderContext.patient || orderContext.payor || orderContext.orderId) && (
+                  <div className="flex items-center gap-2 mt-1.5 text-[11px] text-[var(--muted)] flex-wrap">
+                    {orderContext.patient && <span>{orderContext.patient}</span>}
+                    {orderContext.patient && orderContext.payor && <span>·</span>}
+                    {orderContext.payor && <span>{orderContext.payor}</span>}
+                    {(orderContext.patient || orderContext.payor) && orderContext.orderId && <span>·</span>}
+                    {orderContext.orderId && <span className="font-mono">{orderContext.orderId}</span>}
+                  </div>
+                )}
+              </div>
+            )}
+
             {uploadStatus && <UploadStatus data={uploadStatus} />}
 
             <AgentPipeline agents={agents} />

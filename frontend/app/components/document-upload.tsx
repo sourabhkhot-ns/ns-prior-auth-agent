@@ -141,7 +141,7 @@ export function DocumentUpload({ onSubmit, isRunning }: DocumentUploadProps) {
             key={slot.key}
             className={`flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors cursor-pointer group ${
               slot.file
-                ? "border-[var(--success)]/20 bg-[var(--success)]/5"
+                ? "border-[var(--success)]/50 bg-[var(--success)]/8"
                 : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--muted)]"
             }`}
             onClick={() => {
@@ -175,7 +175,7 @@ export function DocumentUpload({ onSubmit, isRunning }: DocumentUploadProps) {
               {slot.file ? (
                 <p className="text-[11px] text-[var(--success)] mt-0.5">{slot.file.name}</p>
               ) : (
-                <p className="text-[11px] text-[var(--muted)]/60 mt-0.5">{slot.description}</p>
+                <p className="text-[11px] text-[var(--muted)] mt-0.5">{slot.description}</p>
               )}
             </div>
 

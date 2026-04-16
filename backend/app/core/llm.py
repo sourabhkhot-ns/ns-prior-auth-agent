@@ -12,8 +12,14 @@ logger = logging.getLogger(__name__)
 litellm.suppress_debug_info = True
 
 MAX_RETRIES = 3
-RETRY_DELAY = 5  # seconds
-LLM_TIMEOUT = 60  # seconds per LLM call
+RETRY_DELAY = 20  # seconds — Groq free tier resets per minute
+LLM_TIMEOUT = 120  # seconds per LLM call (local MLX models can be slower)
+MAX_OUTPUT_TOKENS = 4096
+
+
+def _is_qwen_reasoning(model: str) -> bool:
+    m = model.lower()
+    return "qwen3" in m or "qwen-3" in m
 
 
 async def llm_call(
@@ -22,6 +28,11 @@ async def llm_call(
     response_format: dict | None = None,
 ) -> str:
     """Make an LLM call via LiteLLM with retry on rate limits and timeout."""
+    # Disable Qwen3's <think> reasoning — otherwise long prompts burn all output tokens
+    # on reasoning and leave empty content.
+    if _is_qwen_reasoning(settings.llm_model):
+        system_prompt = f"/no_think\n\n{system_prompt}"
+
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_prompt},
@@ -32,7 +43,11 @@ async def llm_call(
         "messages": messages,
         "temperature": settings.llm_temperature,
         "timeout": LLM_TIMEOUT,
+        "max_tokens": MAX_OUTPUT_TOKENS,
     }
+
+    if settings.llm_api_base:
+        kwargs["api_base"] = settings.llm_api_base
 
     if response_format:
         kwargs["response_format"] = response_format
@@ -98,21 +113,10 @@ async def llm_call_json(
     system_prompt: str,
     user_prompt: str,
 ) -> dict:
-    """Make an LLM call and parse the response as JSON."""
-    # Try with response_format first
-    try:
-        response = await llm_call(
-            system_prompt=system_prompt,
-            user_prompt=user_prompt,
-            response_format={"type": "json_object"},
-        )
-        return _extract_json(response)
-    except Exception as e:
-        logger.warning("JSON mode failed (%s), retrying without response_format", e)
-
-    # Fallback: no response_format, add explicit JSON instruction
+    """Make an LLM call and parse the response as JSON. Single attempt — no fallback doubling."""
     response = await llm_call(
         system_prompt=system_prompt + "\n\nYou MUST respond with valid JSON only. No markdown, no explanation, just the JSON object.",
         user_prompt=user_prompt,
+        response_format={"type": "json_object"},
     )
     return _extract_json(response)

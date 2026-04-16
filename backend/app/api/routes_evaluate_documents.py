@@ -1,6 +1,7 @@
 """Multi-document PA evaluation endpoint — SSE streaming."""
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
@@ -34,87 +35,108 @@ def _sse_event(event: str, data: dict) -> str:
 
 
 async def _run_document_pipeline(state: AgentState, uploaded_docs: list[str], missing_docs: list[str]):
-    """Run the multi-document PA evaluation pipeline."""
+    """Run the multi-document PA evaluation pipeline.
 
-    pipeline = [
-        ("document_analyzer", "Analyzing uploaded documents", document_analyzer_node),
-        ("enrichment", "Looking up test catalog & payor rules", enrichment_node),
-        ("code_evaluator", "Evaluating ICD-10 & CPT codes", code_evaluator_node),
-        ("criteria_evaluator", "Checking medical necessity criteria", criteria_evaluator_node),
-        ("gap_detector", "Detecting documentation gaps", gap_detector_node),
-        ("risk_scorer", "Scoring denial risk", risk_scorer_node),
+    Groups of agents that can run concurrently are declared as sub-lists.
+    """
+    pipeline: list[list[tuple[str, str, object]]] = [
+        [("document_analyzer", "Analyzing uploaded documents", document_analyzer_node)],
+        [("enrichment", "Looking up test catalog & payor rules", enrichment_node)],
+        [
+            ("code_evaluator", "Evaluating ICD-10 & CPT codes", code_evaluator_node),
+            ("criteria_evaluator", "Checking medical necessity criteria", criteria_evaluator_node),
+        ],  # run in parallel — neither depends on the other
+        [("gap_detector", "Detecting documentation gaps", gap_detector_node)],
+        [("risk_scorer", "Scoring denial risk", risk_scorer_node)],
     ]
+    flat = [agent for group in pipeline for agent in group]
 
     # Send upload events first
     yield _sse_event("upload_status", {
         "uploaded": [{"type": k, "label": DOC_TYPES.get(k, k)} for k in uploaded_docs],
-        "missing": [{"type": k, "label": DOC_TYPES.get(k, k)} for k in missing_docs],
+        "missing":  [{"type": k, "label": DOC_TYPES.get(k, k)} for k in missing_docs],
     })
 
     # Send pipeline
     yield _sse_event("pipeline", {
-        "agents": [{"id": a[0], "label": a[1], "status": "pending"} for a in pipeline],
+        "agents": [{"id": a[0], "label": a[1], "status": "pending"} for a in flat],
     })
 
-    for agent_id, label, agent_fn in pipeline:
-        yield _sse_event("agent_update", {
-            "id": agent_id,
-            "status": "running",
-            "label": label,
-        })
+    aborted = False
+    for group in pipeline:
+        if aborted:
+            break
 
-        try:
-            result = await agent_fn(state)
-            state.update(result)
+        # Emit "running" for every agent in the group up-front
+        for agent_id, label, _ in group:
+            yield _sse_event("agent_update", {"id": agent_id, "status": "running", "label": label})
 
-            summary = _agent_summary(agent_id, state)
-
-            yield _sse_event("agent_update", {
-                "id": agent_id,
-                "status": "completed",
-                "label": label,
-                "message": summary,
-            })
-        except Exception as e:
-            logger.error("Agent %s failed: %s", agent_id, e)
-            state.setdefault("errors", []).append(f"{agent_id}: {e}")
-
-            yield _sse_event("agent_update", {
-                "id": agent_id,
-                "status": "error",
-                "label": label,
-                "message": str(e),
-            })
-
-            # Fatal — abort and jump to risk scorer
-            if agent_id in ("document_analyzer", "enrichment"):
-                remaining = [a for a in pipeline if a[0] not in
-                    ("document_analyzer", "enrichment", "risk_scorer", agent_id)]
-                for skip_id, skip_label, _ in remaining:
-                    yield _sse_event("agent_update", {
-                        "id": skip_id,
-                        "status": "skipped",
-                        "label": skip_label,
-                        "message": f"Skipped — {agent_id} failed",
-                    })
-
+        if len(group) == 1:
+            agent_id, label, agent_fn = group[0]
+            try:
+                result = await agent_fn(state)
+                state.update(result)
                 yield _sse_event("agent_update", {
-                    "id": "risk_scorer", "status": "running", "label": "Scoring denial risk",
+                    "id": agent_id, "status": "completed", "label": label,
+                    "message": _agent_summary(agent_id, state),
                 })
+            except Exception as e:
+                logger.error("Agent %s failed: %s", agent_id, e)
+                state.setdefault("errors", []).append(f"{agent_id}: {e}")
+                yield _sse_event("agent_update", {
+                    "id": agent_id, "status": "error", "label": label, "message": str(e),
+                })
+
+                # Fatal agents — abort and jump to risk scorer
+                if agent_id in ("document_analyzer", "enrichment"):
+                    remaining = [a for a in flat if a[0] not in
+                        ("document_analyzer", "enrichment", "risk_scorer", agent_id)]
+                    for skip_id, skip_label, _ in remaining:
+                        yield _sse_event("agent_update", {
+                            "id": skip_id, "status": "skipped", "label": skip_label,
+                            "message": f"Skipped — {agent_id} failed",
+                        })
+                    yield _sse_event("agent_update", {
+                        "id": "risk_scorer", "status": "running", "label": "Scoring denial risk",
+                    })
+                    try:
+                        result = await risk_scorer_node(state)
+                        state.update(result)
+                        yield _sse_event("agent_update", {
+                            "id": "risk_scorer", "status": "completed",
+                            "label": "Scoring denial risk",
+                            "message": _agent_summary("risk_scorer", state),
+                        })
+                    except Exception as re:
+                        yield _sse_event("agent_update", {
+                            "id": "risk_scorer", "status": "error",
+                            "label": "Scoring denial risk", "message": str(re),
+                        })
+                    aborted = True
+        else:
+            # Parallel group — launch all, yield completion events as each finishes.
+            async def _run_one(aid: str, alabel: str, afn):
                 try:
-                    result = await risk_scorer_node(state)
+                    r = await afn(state)
+                    return aid, alabel, r, None
+                except Exception as ex:
+                    return aid, alabel, None, ex
+
+            tasks = [asyncio.create_task(_run_one(a_id, a_label, a_fn)) for a_id, a_label, a_fn in group]
+            for coro in asyncio.as_completed(tasks):
+                agent_id, label, result, err = await coro
+                if err:
+                    logger.error("Agent %s failed: %s", agent_id, err)
+                    state.setdefault("errors", []).append(f"{agent_id}: {err}")
+                    yield _sse_event("agent_update", {
+                        "id": agent_id, "status": "error", "label": label, "message": str(err),
+                    })
+                else:
                     state.update(result)
                     yield _sse_event("agent_update", {
-                        "id": "risk_scorer", "status": "completed",
-                        "label": "Scoring denial risk",
-                        "message": _agent_summary("risk_scorer", state),
+                        "id": agent_id, "status": "completed", "label": label,
+                        "message": _agent_summary(agent_id, state),
                     })
-                except Exception as re:
-                    yield _sse_event("agent_update", {
-                        "id": "risk_scorer", "status": "error",
-                        "label": "Scoring denial risk", "message": str(re),
-                    })
-                break
 
     evaluation = state.get("evaluation")
     if evaluation:

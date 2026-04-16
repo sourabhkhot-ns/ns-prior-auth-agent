@@ -19,22 +19,24 @@ def _should_continue_after_parse(state: AgentState) -> str:
     return "risk_scorer"  # Will produce error evaluation
 
 
-def _should_continue_after_enrichment(state: AgentState) -> str:
-    """Route after enrichment: evaluate if we have rules, score if not."""
+def _fanout_after_enrichment(state: AgentState) -> list[str] | str:
+    """Fan out to parallel evaluators if we have payor rules; otherwise skip to gap detector."""
     if state.get("payor_rule"):
-        return "evaluate"
-    return "gap_detector"  # Skip code/criteria eval, go straight to gap + risk
+        return ["code_evaluator", "criteria_evaluator"]
+    return "gap_detector"
 
 
 def build_graph() -> StateGraph:
     """Build the PA evaluation LangGraph workflow.
 
     Flow:
-        order_parser → enrichment → [code_evaluator, criteria_evaluator] → gap_detector → risk_scorer
+        order_parser → enrichment → [code_evaluator ∥ criteria_evaluator] → gap_detector → risk_scorer
+
+    code_evaluator and criteria_evaluator run concurrently — they don't depend on each other.
+    gap_detector waits for both (LangGraph joins on incoming edges).
     """
     graph = StateGraph(AgentState)
 
-    # Add nodes
     graph.add_node("order_parser", order_parser_node)
     graph.add_node("enrichment", enrichment_node)
     graph.add_node("code_evaluator", code_evaluator_node)
@@ -42,7 +44,6 @@ def build_graph() -> StateGraph:
     graph.add_node("gap_detector", gap_detector_node)
     graph.add_node("risk_scorer", risk_scorer_node)
 
-    # Entry point
     graph.set_entry_point("order_parser")
 
     # order_parser → enrichment (or risk_scorer on error)
@@ -55,26 +56,18 @@ def build_graph() -> StateGraph:
         },
     )
 
-    # enrichment → parallel code + criteria evaluation (or skip to gap detector)
+    # enrichment → parallel [code_evaluator, criteria_evaluator] (or skip to gap_detector)
     graph.add_conditional_edges(
         "enrichment",
-        _should_continue_after_enrichment,
-        {
-            "evaluate": "code_evaluator",
-            "gap_detector": "gap_detector",
-        },
+        _fanout_after_enrichment,
+        ["code_evaluator", "criteria_evaluator", "gap_detector"],
     )
 
-    # code_evaluator → criteria_evaluator (sequential for now; LangGraph parallel requires fan-out)
-    graph.add_edge("code_evaluator", "criteria_evaluator")
-
-    # criteria_evaluator → gap_detector
+    # Both evaluators fan in to gap_detector; LangGraph waits for both to finish.
+    graph.add_edge("code_evaluator", "gap_detector")
     graph.add_edge("criteria_evaluator", "gap_detector")
 
-    # gap_detector → risk_scorer
     graph.add_edge("gap_detector", "risk_scorer")
-
-    # risk_scorer → END
     graph.add_edge("risk_scorer", END)
 
     return graph

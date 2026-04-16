@@ -181,7 +181,7 @@ export function OrderForm({ onSubmitJson, onSubmitPdf, isRunning }: OrderFormPro
               onChange={(e) => setJsonInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Paste order JSON..."
-              className="w-full h-56 bg-[var(--surface)] border border-[var(--border)] rounded-lg text-xs text-[var(--foreground)] placeholder:text-[var(--muted)]/40 resize-none focus:outline-none focus:border-[var(--muted)] p-4 transition-colors"
+              className="w-full h-56 bg-[var(--surface)] border border-[var(--border)] rounded-lg text-xs text-[var(--foreground)] placeholder:text-[var(--muted-soft)] resize-none focus:outline-none focus:border-[var(--muted)] p-4 transition-colors"
               spellCheck={false}
             />
           </div>

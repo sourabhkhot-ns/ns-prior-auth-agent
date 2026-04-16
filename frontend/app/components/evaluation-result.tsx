@@ -7,16 +7,28 @@ interface EvaluationResultProps {
   data: EvaluationData;
 }
 
-function RiskBadge({ risk }: { risk: string }) {
-  const styles: Record<string, string> = {
-    HIGH: "bg-[var(--error)]/15 text-[var(--error)] border-[var(--error)]/30",
-    MEDIUM: "bg-[var(--warning)]/15 text-[var(--warning)] border-[var(--warning)]/30",
-    LOW: "bg-[var(--success)]/15 text-[var(--success)] border-[var(--success)]/30",
+function RiskVerdict({ risk, summary }: { risk: string; summary: string }) {
+  const config: Record<string, { color: string; bg: string; dot: string; label: string }> = {
+    HIGH:   { color: "text-[var(--error)]",   bg: "bg-[var(--error)]/8   border-[var(--error)]/30",   dot: "bg-[var(--error)]",   label: "High risk of denial" },
+    MEDIUM: { color: "text-[var(--warning)]", bg: "bg-[var(--warning)]/8 border-[var(--warning)]/30", dot: "bg-[var(--warning)]", label: "Medium risk of denial" },
+    LOW:    { color: "text-[var(--success)]", bg: "bg-[var(--success)]/8 border-[var(--success)]/30", dot: "bg-[var(--success)]", label: "Low risk of denial" },
   };
+  const c = config[risk] || config.HIGH;
   return (
-    <span className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded border ${styles[risk] || styles.HIGH}`}>
-      {risk} RISK
-    </span>
+    <div className={`rounded-lg border px-5 py-4 ${c.bg}`}>
+      <div className="flex items-center gap-2.5 mb-2">
+        <span className={`w-2 h-2 rounded-full ${c.dot}`} />
+        <span className={`text-[10px] font-semibold tracking-widest uppercase ${c.color}`}>
+          {risk} · Verdict
+        </span>
+      </div>
+      <h2 className={`text-xl font-semibold leading-tight tracking-tight ${c.color} mb-2`}>
+        {c.label}
+      </h2>
+      <p className="text-sm leading-relaxed text-[var(--foreground)]/85 max-w-2xl">
+        {summary}
+      </p>
+    </div>
   );
 }
 
@@ -117,12 +129,9 @@ export function EvaluationResult({ data }: EvaluationResultProps) {
 
   return (
     <div ref={containerRef} className="space-y-1 pt-2">
-      {/* Risk + Summary */}
+      {/* Risk verdict — hero */}
       <div className="animate-slide-in py-3">
-        <RiskBadge risk={data.denial_risk} />
-        <p className="text-xs text-[var(--foreground)]/90 mt-4 leading-relaxed max-w-2xl">
-          {data.summary}
-        </p>
+        <RiskVerdict risk={data.denial_risk} summary={data.summary} />
       </div>
 
       {/* Issues */}

@@ -84,6 +84,22 @@ class ClinicalInfo(BaseModel):
     family_history: str | None = None
     additional_info: str | None = None
 
+    @field_validator(
+        "prior_testing_details", "supplemental_notes",
+        "family_history", "additional_info",
+        mode="before",
+    )
+    @classmethod
+    def _coerce_to_str(cls, v):
+        """LLMs sometimes return structured dicts/lists for narrative fields — flatten to text."""
+        if v is None or isinstance(v, str):
+            return v
+        if isinstance(v, dict):
+            return "; ".join(f"{k}: {val}" for k, val in v.items() if val)
+        if isinstance(v, list):
+            return "; ".join(str(item) for item in v if item)
+        return str(v)
+
 
 class CareTeam(BaseModel):
     institution_name: str = ""
@@ -94,6 +110,15 @@ class CareTeam(BaseModel):
     ordering_provider_phone: str | None = None
     primary_contact_first_name: str | None = None
     primary_contact_last_name: str | None = None
+
+    @field_validator(
+        "institution_name", "institution_code",
+        "ordering_provider_first_name", "ordering_provider_last_name",
+        mode="before",
+    )
+    @classmethod
+    def _coerce_str(cls, v: str | None) -> str:
+        return v or ""
 
 
 class SampleInfo(BaseModel):

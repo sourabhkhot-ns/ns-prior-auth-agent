@@ -1,6 +1,7 @@
 """Streaming evaluation endpoint — SSE for real-time agent progress."""
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from fastapi import APIRouter, UploadFile, File, HTTPException
@@ -33,115 +34,115 @@ def _sse_event(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data)}\n\n"
 
 
-def _build_pipeline(state: AgentState) -> list[tuple[str, str, object]]:
-    """Build the agent pipeline with conditional routing matching graph.py logic."""
+def _build_pipeline(state: AgentState) -> list[list[tuple[str, str, object]]]:
+    """Build the agent pipeline as groups. Agents in the same group run concurrently."""
     has_order = state.get("order") is not None
     is_pdf = state.get("input_is_pdf", False)
 
-    pipeline = []
+    groups: list[list[tuple[str, str, object]]] = []
 
-    # 1. Order parser — skip if structured JSON input
     if is_pdf or not has_order:
-        pipeline.append(("order_parser", "Parsing order from PDF", order_parser_node))
+        groups.append([("order_parser", "Parsing order from PDF", order_parser_node)])
 
-    # 2. Enrichment — always runs
-    pipeline.append(("enrichment", "Looking up test catalog & payor rules", enrichment_node))
+    groups.append([("enrichment", "Looking up test catalog & payor rules", enrichment_node)])
 
-    # 3-4. Code + Criteria evaluation — only if we expect payor rules
-    # (we don't know yet, so include them; they'll handle missing rules gracefully)
-    pipeline.append(("code_evaluator", "Evaluating ICD-10 & CPT codes", code_evaluator_node))
-    pipeline.append(("criteria_evaluator", "Checking medical necessity criteria", criteria_evaluator_node))
+    # code_evaluator and criteria_evaluator are independent — run concurrently
+    groups.append([
+        ("code_evaluator", "Evaluating ICD-10 & CPT codes", code_evaluator_node),
+        ("criteria_evaluator", "Checking medical necessity criteria", criteria_evaluator_node),
+    ])
 
-    # 5. Gap detector
-    pipeline.append(("gap_detector", "Detecting documentation gaps", gap_detector_node))
+    groups.append([("gap_detector", "Detecting documentation gaps", gap_detector_node)])
+    groups.append([("risk_scorer", "Scoring denial risk", risk_scorer_node)])
 
-    # 6. Risk scorer — always runs last
-    pipeline.append(("risk_scorer", "Scoring denial risk", risk_scorer_node))
-
-    return pipeline
+    return groups
 
 
 async def _run_pipeline_streaming(state: AgentState):
-    """Run the agent pipeline step by step, yielding SSE events."""
-    pipeline = _build_pipeline(state)
+    """Run the agent pipeline group by group, yielding SSE events."""
+    groups = _build_pipeline(state)
+    flat = [agent for g in groups for agent in g]
 
     # Send initial pipeline state
     yield _sse_event("pipeline", {
-        "agents": [{"id": a[0], "label": a[1], "status": "pending"} for a in pipeline],
+        "agents": [{"id": a[0], "label": a[1], "status": "pending"} for a in flat],
     })
 
-    for agent_id, label, agent_fn in pipeline:
-        # Signal agent start
-        yield _sse_event("agent_update", {
-            "id": agent_id,
-            "status": "running",
-            "label": label,
-        })
+    aborted = False
+    for group in groups:
+        if aborted:
+            break
 
-        try:
-            result = await agent_fn(state)
-            state.update(result)
+        for agent_id, label, _ in group:
+            yield _sse_event("agent_update", {"id": agent_id, "status": "running", "label": label})
 
-            summary = _agent_summary(agent_id, state)
-
-            yield _sse_event("agent_update", {
-                "id": agent_id,
-                "status": "completed",
-                "label": label,
-                "message": summary,
-            })
-        except Exception as e:
-            logger.error("Agent %s failed: %s", agent_id, e)
-            state.setdefault("errors", []).append(f"{agent_id}: {e}")
-
-            yield _sse_event("agent_update", {
-                "id": agent_id,
-                "status": "error",
-                "label": label,
-                "message": str(e),
-            })
-
-            # Fatal agents — abort pipeline, jump to risk scorer
-            if agent_id in ("order_parser", "enrichment"):
-                # Mark remaining agents as skipped
-                remaining = [a for a in pipeline if a[0] not in
-                    ("order_parser", "enrichment", "risk_scorer", agent_id)]
-                for skip_id, skip_label, _ in remaining:
-                    yield _sse_event("agent_update", {
-                        "id": skip_id,
-                        "status": "skipped",
-                        "label": skip_label,
-                        "message": f"Skipped — {agent_id} failed",
-                    })
-
-                # Run risk scorer to produce error evaluation
+        if len(group) == 1:
+            agent_id, label, agent_fn = group[0]
+            try:
+                result = await agent_fn(state)
+                state.update(result)
                 yield _sse_event("agent_update", {
-                    "id": "risk_scorer",
-                    "status": "running",
-                    "label": "Scoring denial risk",
+                    "id": agent_id, "status": "completed", "label": label,
+                    "message": _agent_summary(agent_id, state),
                 })
+            except Exception as e:
+                logger.error("Agent %s failed: %s", agent_id, e)
+                state.setdefault("errors", []).append(f"{agent_id}: {e}")
+                yield _sse_event("agent_update", {
+                    "id": agent_id, "status": "error", "label": label, "message": str(e),
+                })
+
+                # Fatal — abort pipeline, jump to risk scorer
+                if agent_id in ("order_parser", "enrichment"):
+                    remaining = [a for a in flat if a[0] not in
+                        ("order_parser", "enrichment", "risk_scorer", agent_id)]
+                    for skip_id, skip_label, _ in remaining:
+                        yield _sse_event("agent_update", {
+                            "id": skip_id, "status": "skipped", "label": skip_label,
+                            "message": f"Skipped — {agent_id} failed",
+                        })
+
+                    yield _sse_event("agent_update", {
+                        "id": "risk_scorer", "status": "running", "label": "Scoring denial risk",
+                    })
+                    try:
+                        result = await risk_scorer_node(state)
+                        state.update(result)
+                        yield _sse_event("agent_update", {
+                            "id": "risk_scorer", "status": "completed",
+                            "label": "Scoring denial risk",
+                            "message": _agent_summary("risk_scorer", state),
+                        })
+                    except Exception as re:
+                        yield _sse_event("agent_update", {
+                            "id": "risk_scorer", "status": "error",
+                            "label": "Scoring denial risk", "message": str(re),
+                        })
+                    aborted = True
+        else:
+            async def _run_one(aid: str, alabel: str, afn):
                 try:
-                    result = await risk_scorer_node(state)
+                    r = await afn(state)
+                    return aid, alabel, r, None
+                except Exception as ex:
+                    return aid, alabel, None, ex
+
+            tasks = [asyncio.create_task(_run_one(a_id, a_label, a_fn)) for a_id, a_label, a_fn in group]
+            for coro in asyncio.as_completed(tasks):
+                agent_id, label, result, err = await coro
+                if err:
+                    logger.error("Agent %s failed: %s", agent_id, err)
+                    state.setdefault("errors", []).append(f"{agent_id}: {err}")
+                    yield _sse_event("agent_update", {
+                        "id": agent_id, "status": "error", "label": label, "message": str(err),
+                    })
+                else:
                     state.update(result)
                     yield _sse_event("agent_update", {
-                        "id": "risk_scorer",
-                        "status": "completed",
-                        "label": "Scoring denial risk",
-                        "message": _agent_summary("risk_scorer", state),
+                        "id": agent_id, "status": "completed", "label": label,
+                        "message": _agent_summary(agent_id, state),
                     })
-                except Exception as re:
-                    yield _sse_event("agent_update", {
-                        "id": "risk_scorer",
-                        "status": "error",
-                        "label": "Scoring denial risk",
-                        "message": str(re),
-                    })
-                break
 
-            # Non-fatal agents — continue but note the failure
-            continue
-
-    # Send final evaluation
     evaluation = state.get("evaluation")
     if evaluation:
         yield _sse_event("result", evaluation.model_dump(mode="json"))
