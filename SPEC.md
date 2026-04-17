@@ -1,539 +1,613 @@
-# Prior Authorization Agent — Specification
+# Prior Auth Agent — System Specification
 
-## 1. Objective
-
-Build a **generic, model-agnostic Prior Authorization (PA) evaluation agent** for genomics/diagnostic laboratories. The agent evaluates test orders against payor-specific rules at the point of order — before submission — to detect documentation gaps, code mismatches, and denial risks.
-
-### Target Users
-- Lab billing teams
-- Genetic counselors
-- Revenue cycle management (RCM) teams
-
-### Core Value Proposition
-Every gap caught at order time is a denial that doesn't happen. The agent moves PA evaluation upstream — from post-submission (reactive) to pre-submission (pre-emptive).
-
-### Design Constraints
-- **Lab-agnostic**: Any lab can configure their test catalog and payor rules. Not hardcoded to any specific lab.
-- **Model-agnostic**: LLM provider is swappable via configuration (Claude, GPT, Gemini, Mistral, Llama, etc.).
-- **Platform-agnostic**: Runs anywhere — local, AWS, GCP, Azure, on-prem. No cloud vendor lock-in.
-- **Fully agentic**: Multi-agent architecture with defined roles, orchestrated via LangGraph.
+A comprehensive document covering the domain, the problem, and our end-to-end implementation.
 
 ---
 
-## 2. Architecture
+## 1. Domain: Prior Authorization for Genomic Testing
 
-### Tech Stack
+### 1.1 What is Prior Authorization?
+
+Prior Authorization (PA) is a utilization management process where a health insurance payor must approve a medical service before it is performed. For genomic/genetic testing:
+
+1. A **clinician** orders a genetic test (WES, WGS, gene panel, etc.)
+2. The **lab** receives the order and determines whether PA is required based on the patient's insurance
+3. A **PA request** is assembled: clinical documentation, ICD-10 codes, CPT codes, medical necessity justification, genetic counseling notes, provider credentials
+4. The request is **submitted** to the payor (fax, portal, or electronic)
+5. The payor **reviews** against their coverage policy
+6. The payor issues a **determination**: approved, denied, or pend for additional information
+7. If denied, the lab may **appeal** with additional documentation
+
+### 1.2 Why It Matters
+
+- **Denial rates for genetic testing are 15–30%** depending on payor and test type
+- Each denial costs the lab $50–200 in administrative rework (appeals, resubmission, staff time)
+- Turnaround time for PA decisions: 2–15 business days; denials add weeks
+- **Most denials are preventable** — they stem from documentation gaps, wrong codes, or missing clinical info that could have been caught before submission
+
+### 1.3 The Upstream Opportunity
+
+Traditional approach: submit the PA, wait, fix problems reactively (appeals, peer-to-peer reviews).
+
+Our approach: **evaluate the order against payor rules at the point of order**, before the PA is ever submitted. Flag mismatches, missing documentation, and medical necessity gaps so the ordering provider can fix them upfront.
+
+This is the "embedded agent" model — the evaluation agent lives in the ordering workflow, not the PA submission workflow.
+
+---
+
+## 2. Payor Landscape
+
+### 2.1 Major US Payors
+
+| Payor | Policy Identifier | Public Source | Scope |
+|---|---|---|---|
+| **UnitedHealthcare** | 2026T0589Z | [UHC Policy PDF](https://www.uhcprovider.com/content/dam/provider/docs/public/policies/comm-medical-drug/whole-exome-and-whole-genome-sequencing.pdf) | WES/WGS for non-oncology |
+| **Aetna** | CPB 0140 | [Aetna CPB 0140](https://www.aetna.com/cpb/medical/data/100_199/0140.html) | Genetic testing (broad) |
+| Cigna | Various coverage policies | cigna.com | Similar structure to Aetna |
+| BCBS | Varies by state plan | State-specific portals | Each state plan has own policy |
+| Humana | Coverage policies | humana.com | Smaller genetic testing footprint |
+| Medicare/Medicaid | NCD/LCD determinations | cms.gov | MolDX program for molecular Dx |
+
+### 2.2 Policy Document Structure
+
+Every payor genetic testing policy contains:
+
+- **Accepted CPT codes** — which billing codes are covered
+- **Accepted ICD-10 categories** — which diagnoses justify the test
+- **Medical necessity criteria** — clinical conditions that must be met
+- **Required documentation** — what must accompany the PA request
+- **Ordering provider requirements** — who is qualified to order
+- **Prior testing requirements** — what tests must have been done first
+- **Exclusions** — what is explicitly not covered
+- **Effective date and policy version** — policies change; version tracking is essential
+
+### 2.3 UnitedHealthcare — Policy 2026T0589Z
+
+**Scope**: Whole Exome and Whole Genome Sequencing (Non-Oncology Conditions)
+
+**Accepted CPT Codes**:
+- 81415, 81416, 81417 (WES — proband, comparison, re-evaluation)
+- 81425, 81426, 81427 (WGS — proband, comparison, re-evaluation)
+- PLA codes: 0094U, 0212U–0215U, 0260U, 0264U–0267U, 0318U, 0335U, 0336U, 0425U, 0426U, 0454U, 0469U, 0532U, 0567U, 0582U, 0583U
+
+**Medical Necessity Criteria** (must satisfy all):
+1. Patient has a suspected genetic condition with clinical features
+2. Conventional diagnostic workup (including CMA/karyotype where indicated) has not yielded a diagnosis
+3. Test results will directly impact clinical management
+4. Genetic counseling has been provided (pre-test)
+5. Ordering provider is a clinical geneticist, genetic counselor, or specialist with genetics expertise
+
+**Clinical Presentation Requirements** (ONE of Group A, OR TWO of Group B):
+
+Group A (any one):
+- Multiple congenital anomalies affecting 2+ unrelated organ systems
+- Moderate-to-severe intellectual disability diagnosed by age 18
+- Global developmental delay
+- Epileptic encephalopathy with onset before age 3
+
+Group B (any two):
+- Congenital anomaly
+- Hearing or visual impairment
+- Inborn error of metabolism
+- Autism spectrum disorder
+- Neuropsychiatric condition
+- Hypotonia or hypertonia
+- Movement disorder
+- Unexplained developmental regression
+- Growth abnormality (failure to thrive, short stature, macrocephaly)
+- Immunologic or hematologic disorder
+- Dysmorphic features
+- Consanguinity or shared ancestry
+- Family member with similar undiagnosed condition
+
+**Required Documentation**:
+- Completed requisition form
+- Clinical notes documenting the indication
+- Genetic counseling note (pre-test)
+- Prior testing results (CMA, single-gene, panel — if applicable)
+- Insurance verification
+- Signed informed consent
+
+**Key Exclusions**:
+- Rapid WGS/WES in outpatient settings (unproven)
+- Whole transcriptome sequencing
+- Optical genome mapping (OGM)
+- Reanalysis of WES before 18 months from initial analysis
+- Fetal demise evaluation, prenatal cell-free DNA, PGT
+
+### 2.4 Aetna — CPB 0140
+
+**Scope**: Genetic Testing (broad — includes WES, panels, single-gene)
+
+**Accepted CPT Codes** (WES/WGS subset):
+- 81415, 81416, 81417 (WES)
+- 81425, 81426, 81427 (WGS)
+- 0214U, 0215U
+
+**Medical Necessity Criteria**:
+1. Clinical features are present, OR the member is at direct risk of inheriting a known mutation
+2. Test results will directly impact treatment
+3. History, physical exam, pedigree analysis, genetic counseling, and conventional diagnostic studies completed — definitive diagnosis remains uncertain
+4. One of the listed diagnoses is suspected
+5. Board-certified geneticist consultation required
+6. Pre- and post-test genetic counseling by independent provider
+7. Alternate etiologies ruled out
+8. WES/WGS more efficient than separate targeted tests
+
+**Accepted Clinical Categories**:
+- Congenital anomalies affecting unrelated organ systems
+- Bilateral sensorineural hearing loss (nonsyndromic)
+- Autism spectrum disorder with syndromic features
+- Epilepsy — intractable/early-onset, age 21 or under
+- Structural/functional abnormality
+- Global developmental delay
+- Intellectual disability
+- Family history suggesting genetic etiology
+
+**Key Differences from UHC**:
+- Narrower PLA code acceptance
+- More emphasis on pedigree analysis
+- Explicit age restrictions for some conditions (epilepsy ≤21)
+- Requires board-certified geneticist (stricter than UHC)
+- Post-test counseling also required (UHC only requires pre-test)
+
+---
+
+## 3. Code Systems
+
+### 3.1 CPT Codes for Genomic Testing
+
+CPT (Current Procedural Terminology) codes describe the test performed.
+
+| Range | Category | Examples |
+|---|---|---|
+| 81400–81408 | Molecular pathology Tier 1–2 | Single-gene tests |
+| 81410–81411 | Aortic dysfunction panel | Gene panels |
+| 81412 | Ashkenazi Jewish carrier panel | Carrier screening |
+| 81415–81417 | **Whole Exome Sequencing** | 81415=proband, 81416=comparison (parent), 81417=re-eval |
+| 81425–81427 | **Whole Genome Sequencing** | 81425=proband, 81426=comparison, 81427=re-eval |
+| 81432–81433 | **Hereditary cancer panels** | 81432=panel sequencing, 81433=dup/del |
+| 81435–81436 | Hereditary colon cancer panel | Lynch syndrome |
+| 81440 | Nuclear gene panel (mitochondrial) | Mitochondrial disorders |
+| 81443 | Genetic testing for severe inherited conditions | Multi-gene panels |
+| 81455 | Somatic tumor NGS panel | Oncology (FoundationOne, etc.) |
+| 81162 | BRCA1/2 full sequence + del/dup | Breast/ovarian cancer |
+| 0094U–0583U | **PLA codes** (Proprietary Lab Analyses) | Lab-specific registered tests |
+
+**PLA codes** are assigned to specific lab/test combinations (e.g., 0094U = a specific lab's WES). Payors map these to generic coverage policies.
+
+### 3.2 ICD-10 Codes
+
+ICD-10-CM codes describe the clinical indication — the "why."
+
+| Range | Category | Use in Genetic Testing |
+|---|---|---|
+| F70–F79 | Intellectual disability | F79 (unspecified) — WES/WGS indication |
+| F80–F89 | Developmental disorders | F84.0 (autism), F88 (other) |
+| G40.x | Epilepsy | G40.419 (intractable) — WES indication |
+| Q00–Q99 | **Congenital anomalies** | Q21.x (cardiac), Q89.7 (multiple) |
+| R62.50 | Failure to thrive | Pediatric WES indication |
+| Z13.71 | Genetic screening | Carrier screening |
+| Z14.x | Genetic carrier status | CF carrier, sickle cell |
+| Z15.01 | Genetic susceptibility to breast cancer | BRCA testing |
+| Z80–Z84 | Family history | Z80.3 (breast cancer), Z84.81 (carrier of genetic disease) |
+| C50.x | Breast cancer | Oncology panels |
+| D80–D89 | Immunodeficiency | Immunologic gene panels |
+
+### 3.3 The Code-Test-Indication Triangle
+
+Every PA request sits at the intersection of three things:
+
+```
+         CPT Code (what test)
+              ▲
+             / \
+            /   \
+           /     \
+ICD-10 Code ──── Clinical Indication
+(why this test)     (supporting evidence)
+```
+
+If any leg is mismatched — wrong CPT for the lab test, ICD-10 that doesn't justify the CPT, clinical evidence that doesn't support the indication — the PA will be denied.
+
+---
+
+## 4. Common Denial Reasons
+
+Ranked by frequency in genomic testing:
+
+| Rank | Reason | % of Denials | Example |
+|---|---|---|---|
+| 1 | **Wrong or insufficient ICD-10 codes** | ~30% | Pneumonia codes submitted for WES (developmental delay) |
+| 2 | **Missing documentation** | ~25% | No genetic counseling note, no prior testing results |
+| 3 | **Medical necessity not met** | ~20% | Clinical presentation doesn't satisfy payor criteria |
+| 4 | **Ordering provider not qualified** | ~10% | Pediatrician ordered instead of geneticist/CGC |
+| 5 | **Prior testing not completed** | ~8% | Payor requires CMA before WES; not done |
+| 6 | **Duplicate/redundant testing** | ~5% | Same gene region already tested |
+| 7 | **Experimental/investigational** | ~2% | Whole transcriptome, OGM — not yet accepted |
+
+---
+
+## 5. Regulatory Context
+
+- **GINA (Genetic Information Nondiscrimination Act)** — prohibits health insurers from using genetic information for coverage/premium decisions. Does not apply to life/disability/LTC insurance.
+- **State parity laws** — several states mandate coverage of genetic testing for certain conditions (e.g., hereditary cancer). Requirements vary by state.
+- **CMS NCD/LCD** — Medicare coverage rules for genetic testing. MolDX program manages molecular diagnostic coverage for several Medicare Administrative Contractors.
+- **21st Century Cures Act** — requires interoperability and patient access to health data; affects how PA data flows between systems.
+- **AMA Prior Auth Reform** — ongoing advocacy to reduce PA burden. Some states have "gold card" laws exempting high-approval-rate providers from PA.
+
+---
+
+## 6. Industry Context
+
+### 6.1 How Labs Handle PA Today
+
+Labs like Invitae, GeneDx, Ambry Genetics, and Baylor Genetics maintain dedicated PA teams that:
+- Review each incoming order against payor policies
+- Manually check ICD-10/CPT alignment
+- Gather missing documentation from ordering providers
+- Submit PA requests via payor portals or fax
+- Track status and manage appeals
+
+This is labor-intensive: a single PA can require 30–60 minutes of staff time across multiple touchpoints.
+
+### 6.2 The Numbers
+
+- ~60–80% of genomic test orders require PA (varies by payor and test)
+- PA turnaround: 2–15 business days for initial decisions
+- Appeal success rate: 40–60% (meaning many initial denials are overturnable with better documentation)
+- Average cost per denial: $50–200 in direct administrative cost; $500–2000+ in delayed patient care and lost revenue
+
+### 6.3 The AI Opportunity
+
+Most denials are pattern-matchable: wrong code for this test, missing document that this payor always requires, provider type that doesn't meet this payor's threshold. An agent that knows the rules can catch these before submission — turning a 15% denial rate into a <5% rate.
+
+---
+
+## 7. Our Implementation
+
+### 7.1 Design Principles
+
+| Principle | Rationale |
+|---|---|
+| **Generic, not lab-specific** | Test catalog and payor rules are configurable seed data. No hardcoded lab logic. |
+| **Model-agnostic** | LLM provider set via env var. Swap OpenAI ↔ Groq ↔ Anthropic ↔ local MLX without code changes. |
+| **Evaluate, don't recommend** | Flags mismatches in the codes as submitted. Never suggests alternative ICD-10/CPT codes. |
+| **Specific gap descriptions** | Never "additional documentation required." Always: what's missing, why the payor requires it, and what would satisfy it. |
+| **Upstream, not downstream** | Evaluate at order time, before the PA is filed. Prevent denials, don't appeal them. |
+
+### 7.2 Tech Stack
 
 | Layer | Technology | Purpose |
-|-------|-----------|---------|
+|---|---|---|
 | Language | Python 3.11+ | Core runtime |
-| API | FastAPI | REST API with OpenAPI docs |
-| Agent Framework | LangGraph | Stateful agent workflow orchestration |
-| LLM Abstraction | LiteLLM | Model-agnostic LLM calls (100+ providers) |
-| Database | PostgreSQL (prod) / SQLite (dev) | Payor rules, test catalog, evaluation history |
-| Async | asyncio | Non-blocking LLM calls and I/O |
+| API | FastAPI | REST + SSE streaming |
+| Agent Framework | LangGraph | Stateful agent workflow |
+| LLM Abstraction | LiteLLM | Model-agnostic (100+ providers) |
+| Database | SQLite (dev) / PostgreSQL (prod) | Rules, catalog, evaluation history |
+| Frontend | Next.js 15 + Tailwind | Real-time agent pipeline UI |
+| PDF Parsing | PyMuPDF | Extract text from uploaded PDFs |
+| Async | asyncio | Non-blocking LLM calls, parallel agents |
 
-### Agent Workflow (LangGraph State Machine)
+### 7.3 Architecture
 
 ```
-                    ┌─────────────────┐
-                    │   START         │
-                    │   (Order Input) │
-                    └────────┬────────┘
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │  Order Parser   │  ← Extracts structured data from PDF
-                    │  Agent          │    (skipped if JSON input)
-                    └────────┬────────┘
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │  Enrichment     │  ← Resolves test code → CPT codes
-                    │  Agent          │    from lab's test catalog
-                    └────────┬────────┘
-                             │
-                    ┌────────┴────────┐
-                    │                 │
-                    ▼                 ▼
-           ┌──────────────┐  ┌──────────────────┐
-           │ Code          │  │ Criteria         │   ← Run in parallel
-           │ Evaluator     │  │ Evaluator        │
-           │ Agent         │  │ Agent            │
-           └──────┬───────┘  └────────┬─────────┘
-                  │                   │
-                  └────────┬──────────┘
-                           │
-                           ▼
-                  ┌─────────────────┐
-                  │  Gap Detector   │  ← Finds missing documentation
-                  │  Agent          │
-                  └────────┬────────┘
-                           │
-                           ▼
-                  ┌─────────────────┐
-                  │  Risk Scorer    │  ← Computes denial risk + final report
-                  │  Agent          │
-                  └────────┬────────┘
-                           │
-                           ▼
-                  ┌─────────────────┐
-                  │  PA Evaluation  │  ← Final output
-                  │  (Output)       │
-                  └─────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│  Frontend (Next.js + Tailwind)                               │
+│  ┌──────────┐  ┌──────────────┐  ┌─────────────────────────┐ │
+│  │  Intake   │  │  Agent       │  │  Evaluation Result      │ │
+│  │  Form     │  │  Pipeline    │  │  (verdict + details)    │ │
+│  └──────────┘  └──────────────┘  └─────────────────────────┘ │
+│         │              ▲  SSE events        ▲                │
+└─────────┼──────────────┼────────────────────┼────────────────┘
+          ▼              │                    │
+┌──────────────────────────────────────────────────────────────┐
+│  Backend (FastAPI + LangGraph)                               │
+│                                                              │
+│  document_analyzer ─┐                                        │
+│  order_parser ──────┼─► enrichment ─► ┌─ code_evaluator ──┐ │
+│                     │    (DB lookup)  └─ criteria_evaluator─┤ │
+│                     │                                       │ │
+│                     │              gap_detector ◄───────────┘ │
+│                     │                   │                     │
+│                     │              risk_scorer                │
+│                     │                   │                     │
+│                     │              PAEvaluation               │
+│                                                              │
+│  ┌────────────┐  ┌──────────┐  ┌───────────────────────┐    │
+│  │ SQLite DB   │  │ Seed Data│  │ LiteLLM → any provider│    │
+│  └────────────┘  └──────────┘  └───────────────────────┘    │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-### Agent Responsibilities
+### 7.4 Agent Pipeline
 
-#### 1. Order Parser Agent
-- **Input**: Raw PDF or unstructured order document
-- **Output**: Structured order data (same schema as JSON input)
-- **Uses LLM**: Yes — to extract fields from unstructured PDFs
-- **Skipped**: When input is already structured JSON
+Six agents. `code_evaluator` and `criteria_evaluator` run **in parallel**.
 
-#### 2. Enrichment Agent
-- **Input**: Structured order data
-- **Output**: Enriched order with CPT codes, payor rules context
-- **Uses LLM**: No — pure lookup from test catalog and payor rules DB
-- **Logic**:
-  - Resolve test code → CPT codes from lab's test catalog
-  - Resolve payor → applicable rules for this test type
-  - Attach both to the order state for downstream agents
+#### Agent 1: Document Analyzer / Order Parser
 
-#### 3. Code Evaluator Agent
-- **Input**: Order (with ICD-10 codes from order) + payor rules (accepted codes)
-- **Output**: Code evaluation report
-- **Uses LLM**: Yes — to reason about whether provided ICD-10 codes satisfy payor criteria
-- **Logic**:
-  - Check each ICD-10 code from the order against payor's accepted codes
-  - Check CPT codes (from enrichment) against payor's accepted CPT list
-  - Flag mismatches with specific reasons
-- **Important**: Agent does NOT recommend alternative codes. It evaluates what was provided.
+- **Input**: 1–4 PDFs (Order Summary, Patient Details, Physician Notes, Test Reports) or a single PDF
+- **LLM call**: Yes — largest call (~15–25K input tokens). Extracts a unified `Order` + cross-reference findings from multi-document text
+- **Output**: `Order` (Pydantic) + `cross_reference` (inconsistencies, key findings)
+- **Why it matters**: This is where model quality matters most. The entire downstream pipeline depends on accurate extraction.
 
-#### 4. Criteria Evaluator Agent
-- **Input**: Order (clinical info, indications, patient demographics) + payor rules (medical necessity criteria)
-- **Output**: Criteria evaluation report
-- **Uses LLM**: Yes — to reason about whether clinical presentation meets payor's medical necessity criteria
-- **Logic**:
-  - Evaluate clinical indications against payor's required clinical criteria
-  - Check ordering provider qualifications against payor requirements
-  - Check if prior testing requirements are met
-  - Check age/sex/ethnicity criteria if applicable
+#### Agent 2: Enrichment
 
-#### 5. Gap Detector Agent
-- **Input**: Full order + payor rules (required documentation) + code evaluation + criteria evaluation
-- **Output**: Documentation gap report
-- **Uses LLM**: Yes — to produce specific, actionable gap descriptions
-- **Logic**:
-  - Compare attached documents against payor's required documentation list
-  - Identify missing items with specificity (not "additional documentation required" but "this payor requires a genetic counseling note for WES authorization; none is attached")
-  - Flag incomplete clinical information
+- **Input**: `Order.test_code` + `Order.insurance.primary.company_code`
+- **LLM call**: No — pure database lookup
+- **Output**: `TestCatalogEntry` (CPT mappings) + `PayorRule` (or null)
+- **Graceful degradation**: If no rule matches, code/criteria evaluation is skipped; gap detector and risk scorer still run.
 
-#### 6. Risk Scorer Agent
-- **Input**: All upstream evaluations (code, criteria, gaps)
-- **Output**: Final PA evaluation with denial risk score
-- **Uses LLM**: Yes — to synthesize findings into a coherent report
-- **Logic**:
-  - Aggregate findings from all evaluators
-  - Compute denial risk: HIGH / MEDIUM / LOW
-  - Produce ordered list of issues to resolve before submission
-  - Generate human-readable summary with reasoning
+#### Agent 3: Code Evaluator (parallel)
+
+- **Input**: Order's ICD-10 + CPT codes + payor's accepted code lists
+- **LLM call**: Yes
+- **Output**: `CodeEvaluation` — per-code ACCEPTED/REJECTED/REVIEW with reasoning
+- **Rule**: Never recommends alternative codes.
+
+#### Agent 4: Criteria Evaluator (parallel)
+
+- **Input**: Full clinical info + payor's medical necessity criteria
+- **LLM call**: Yes
+- **Output**: `CriteriaEvaluation` — per-criterion **tri-state** (met / partial / not_met) with evidence
+- **Why tri-state**: Binary loses nuance. "Partial" = evidence exists but documentation is incomplete — a fixable problem.
+
+#### Agent 5: Gap Detector
+
+- **Input**: Order documents + payor's required doc list + code/criteria summaries
+- **LLM call**: Yes
+- **Output**: `GapReport` — missing documents and missing clinical info, each with specific detail
+- **Depends on 3+4**: Uses their summaries as context (e.g., if a code was rejected, flags the related clinical justification gap).
+
+#### Agent 6: Risk Scorer
+
+- **Input**: All upstream outputs
+- **LLM call**: Yes
+- **Output**: `PAEvaluation` — denial risk (HIGH/MEDIUM/LOW), summary, prioritized issues with severity/category/description/resolution
+
+### 7.5 Parallel Execution
+
+`code_evaluator` and `criteria_evaluator` are independent — neither reads the other's output. Both fan out from `enrichment`. `gap_detector` joins on both.
+
+Implementation: streaming endpoints use `asyncio.as_completed` to run both concurrently and emit SSE events as each finishes. On Groq (~2s/call) saves ~2s. On local MLX (~30s/call) saves ~30s.
+
+### 7.6 Streaming Protocol (SSE)
+
+| Event | When | Shape |
+|---|---|---|
+| `upload_status` | Start (docs path) | `{ uploaded: [{type, label}], missing: [{type, label}] }` |
+| `pipeline` | Start | `{ agents: [{ id, label, status: "pending" }] }` |
+| `agent_update` | Each transition | `{ id, label, status, message? }` |
+| `result` | End (success) | Full `PAEvaluation` JSON |
+| `error` | End (failure) | `{ message }` |
+
+### 7.7 LLM Tolerance Stack
+
+1. `response_format={"type":"json_object"}` — provider-level JSON mode
+2. System prompt suffix: "You MUST respond with valid JSON only."
+3. Multi-strategy JSON extraction: direct parse → markdown block → first `{` to last `}`
+4. Pydantic `mode="before"` validators: coerce `None` → `""`, `dict` → formatted string, `list` → joined string
+5. Qwen3 `/no_think` prefix: prevents reasoning tokens from starving the response
+6. Retry with escalating backoff: 3 attempts, 20s/40s/60s delays for rate limits
+
+### 7.8 Observability
+
+Every LLM call logs:
+```
+[code_evaluator] model=openai/gpt-4o-mini tokens=8100→640 (cached=0, total=8740) cost=$0.001599 latency=2150ms finish=stop
+```
+
+Each evaluation emits a summary:
+```
+[4096116d] SUMMARY calls=5 tokens=41200→5600 (cached=0) cost=$0.012180 wall_llm=14320ms
+[4096116d]   └─ document_analyzer    calls=1 tokens=12340→1820 cost=$0.003144 latency=4210ms
+[4096116d]   └─ code_evaluator       calls=1 tokens=8100→640  cost=$0.001599 latency=2150ms
+...
+```
+
+Uses `contextvars` for per-evaluation accumulation across parallel agents.
+
+### 7.9 Model-Agnostic Configuration
+
+```env
+LLM_MODEL=openai/gpt-4o-mini              # any LiteLLM-supported model
+LLM_API_BASE=                             # optional: OpenAI-compatible endpoint (MLX, vLLM, Ollama)
+LLM_TEMPERATURE=0.1
+OPENAI_API_KEY=...                        # set the key matching your provider
+```
+
+Tested with: OpenAI (gpt-4o, gpt-4o-mini), Groq (llama-3.3-70b, llama-3.1-8b), local MLX (Qwen3-8B).
 
 ---
 
-## 3. Data Models
+## 8. Data Models
 
 ### Order (Input)
 
-```python
-class Order:
-    order_id: str
-    test_code: str
-    test_name: str | None
-
-    patient: Patient
-    insurance: Insurance
-    clinical_info: ClinicalInfo
-    care_team: CareTeam
-    documents: list[Document]
-
-class Patient:
-    first_name: str
-    last_name: str
-    date_of_birth: date
-    sex: str
-    ethnicity: list[str]
-    medical_record_number: str
-    relatives: list[Relative]
-
-class Insurance:
-    payment_method: str          # INSURANCE, SELF_PAY
-    insurance_type: str          # COMMERCIAL, MEDICARE, MEDICAID
-    primary: InsuranceDetail
-    secondary: InsuranceDetail | None
-
-class InsuranceDetail:
-    company_name: str
-    company_code: str | None
-    member_id: str
-    group_id: str
-    authorization_number: str | None
-
-class ClinicalInfo:
-    icd10_codes: list[ICD10Code]
-    indications: list[Indication]
-    genes_of_interest: list[str]
-    prior_genetic_testing: bool
-    prior_testing_details: str | None
-    supplemental_notes: str | None
-    is_inpatient: bool
-    family_history: str | None
-
-class ICD10Code:
-    code: str
-    description: str
-
-class Indication:
-    name: str
-    category: str              # Cancer, Gastrointestinal, Neurological, etc.
-    custom_value: str | None
-
-class Document:
-    title: str
-    document_type: str         # Clinical Information, Insurance Card, ABN, Requisition, etc.
+```
+Order
+├── order_id, test_code, test_name
+├── Patient (name, DOB, sex, ethnicity, MRN, relatives)
+├── Insurance (company, member_id, group_id, auth_number)
+├── ClinicalInfo
+│   ├── icd10_codes: [{code, description}]
+│   ├── indications: [{name, category, custom_value}]
+│   ├── genes_of_interest: [str]
+│   ├── prior_genetic_testing: bool + details
+│   ├── family_history: str
+│   └── supplemental_notes, additional_info
+├── CareTeam (institution, ordering provider, primary contact)
+├── Sample (status, type, collection_date)
+└── Documents: [{title, document_type}]
 ```
 
-### Test Catalog (Configured Per Lab)
+### PAEvaluation (Output)
 
-```python
-class TestCatalogEntry:
-    test_code: str
-    test_name: str
-    cpt_codes: list[str]       # e.g., ["81415x1", "81416x2"]
-    description: str
-    category: str              # WES, WGS, Panel, etc.
-    price: float | None
-    turnaround_time: str | None
+```
+PAEvaluation
+├── order_id, evaluation_id, timestamp
+├── denial_risk: HIGH | MEDIUM | LOW
+├── summary: str
+├── CodeEvaluation
+│   ├── icd10_results: [{code, description, status, reason}]
+│   ├── cpt_results: [{code, description, status, reason}]
+│   └── summary
+├── CriteriaEvaluation
+│   ├── criteria_results: [{criterion, met: met|partial|not_met, evidence, notes}]
+│   ├── overall_met: bool
+│   └── summary
+├── GapReport
+│   ├── missing_documents: [{requirement, status, detail}]
+│   ├── missing_clinical_info: [{requirement, status, detail}]
+│   └── summary
+└── issues: [{severity, category, description, resolution}]
 ```
 
-### Payor Rules (Configured Per Lab)
+### PayorRule (Configuration)
 
-```python
-class PayorRule:
-    payor_name: str
-    payor_code: str
-    test_category: str                    # WES, WGS, Hereditary Cancer Panel, etc.
-    policy_version: str
-    effective_date: date
-    
-    # What the payor requires
-    accepted_cpt_codes: list[str]
-    accepted_icd10_categories: list[str]  # Broad categories accepted
-    
-    medical_necessity_criteria: list[Criterion]
-    required_documentation: list[str]
-    ordering_provider_requirements: list[str]
-    prior_testing_requirements: list[str]
-    
-    submission_channel: str               # FHIR_PAS, EDI_X12_278, PORTAL
-    submission_notes: str | None
-    
-    # What the payor does NOT cover
-    exclusions: list[str]
-
-class Criterion:
-    description: str
-    category: str                         # CLINICAL_PRESENTATION, AGE, PROVIDER, etc.
-    required: bool                        # Must meet vs. supporting
-    group: str | None                     # For "meet X of Y" logic (e.g., "GROUP_A")
-    group_min_required: int | None        # Minimum from this group
 ```
-
-### PA Evaluation (Output)
-
-```python
-class PAEvaluation:
-    order_id: str
-    evaluation_id: str
-    timestamp: datetime
-    
-    # Overall
-    denial_risk: str                      # HIGH, MEDIUM, LOW
-    summary: str                          # Human-readable summary
-    
-    # Detail sections
-    code_evaluation: CodeEvaluation
-    criteria_evaluation: CriteriaEvaluation
-    gap_report: GapReport
-    
-    # Actionable
-    issues: list[Issue]                   # Ordered by severity
-
-class CodeEvaluation:
-    icd10_results: list[CodeResult]
-    cpt_results: list[CodeResult]
-
-class CodeResult:
-    code: str
-    description: str
-    status: str                           # ACCEPTED, REJECTED, UNCERTAIN
-    reason: str
-
-class CriteriaEvaluation:
-    criteria_results: list[CriterionResult]
-    overall_met: bool
-
-class CriterionResult:
-    criterion: str
-    met: bool
-    evidence: str                         # What in the order supports/contradicts this
-    notes: str | None
-
-class GapReport:
-    missing_documents: list[GapItem]
-    missing_clinical_info: list[GapItem]
-    
-class GapItem:
-    requirement: str                      # What the payor requires
-    status: str                           # MISSING, PRESENT, PARTIAL
-    detail: str                           # Specific description of what's missing
-
-class Issue:
-    severity: str                         # CRITICAL, WARNING, INFO
-    category: str                         # CODE_MISMATCH, MISSING_DOC, CRITERIA_NOT_MET, etc.
-    description: str                      # Specific, actionable description
-    resolution: str                       # What needs to happen to fix this
+PayorRule
+├── payor_name, payor_code, test_category
+├── policy_version, effective_date
+├── accepted_cpt_codes: [str]
+├── accepted_icd10_categories: [str]
+├── medical_necessity_criteria: [{description, category, required, group, group_min}]
+├── required_documentation: [str]
+├── ordering_provider_requirements: [str]
+├── prior_testing_requirements: [str]
+├── submission_channel, submission_notes
+└── exclusions: [str]
 ```
 
 ---
 
-## 4. API Endpoints
+## 9. Seed Data
 
-### V1 Endpoints
+### Payor Rules (2 seeded)
 
-```
-POST /api/v1/evaluate
-  Body: { order: Order } or multipart with PDF upload
-  Response: PAEvaluation
+| File | Payor | Policy | Source |
+|---|---|---|---|
+| `uhc_wes_wgs.json` | UnitedHealthcare | 2026T0589Z | [PDF](https://www.uhcprovider.com/content/dam/provider/docs/public/policies/comm-medical-drug/whole-exome-and-whole-genome-sequencing.pdf) |
+| `aetna_wes_wgs.json` | Aetna | CPB 0140 | [HTML](https://www.aetna.com/cpb/medical/data/100_199/0140.html) |
 
-POST /api/v1/evaluate/pdf
-  Body: multipart/form-data with PDF file
-  Response: PAEvaluation
+### Test Catalog (7 entries)
 
-GET /api/v1/evaluations/{evaluation_id}
-  Response: PAEvaluation
+WES (proband, duo, trio), WGS (proband, rapid), panel tests with CPT code mappings.
 
-GET /api/v1/health
-  Response: { status: "ok", model: "...", version: "..." }
-```
+### Sample Orders (6 cases)
 
-### Configuration Endpoints (Admin)
+| # | Scenario | Expected Risk | Key Feature |
+|---|---|---|---|
+| 01 | Trio WES, UHC, complete docs | LOW | Happy path |
+| 02 | WGS with pneumonia ICD-10s | HIGH | Wrong codes |
+| 03 | Epilepsy WES, missing counseling | MEDIUM | Documentation gap |
+| 04 | NICU rapid WGS, acutely ill neonate | LOW | Urgent inpatient |
+| 05 | ASD panel, pediatrician ordering | HIGH | Provider not qualified |
+| 06 | Hereditary cancer panel (BRCA), Aetna | LOW | Oncology case |
 
-```
-GET    /api/v1/catalog/tests
-POST   /api/v1/catalog/tests                  # Add/update test catalog entry
-DELETE /api/v1/catalog/tests/{test_code}
+### Sample PDFs (4 documents)
 
-GET    /api/v1/rules/payors
-GET    /api/v1/rules/payors/{payor_code}
-POST   /api/v1/rules/payors                   # Add/update payor rules
-DELETE /api/v1/rules/payors/{payor_code}
-
-POST   /api/v1/rules/extract                  # Feed payor policy PDF → extract rules via LLM
-```
+Order Summary, Patient Details, Physician Notes, Test Reports — for the multi-document upload flow.
 
 ---
 
-## 5. Project Structure
+## 10. Frontend
 
-```
-prior-auth-agent/
-├── SPEC.md
-├── README.md
-├── pyproject.toml
-├── .env.example
-│
-├── app/
-│   ├── __init__.py
-│   ├── main.py                        # FastAPI app entry point
-│   ├── config.py                      # Settings (model, DB, feature flags)
-│   │
-│   ├── agents/
-│   │   ├── __init__.py
-│   │   ├── graph.py                   # LangGraph workflow definition
-│   │   ├── state.py                   # Shared agent state schema
-│   │   ├── order_parser.py            # PDF → structured order
-│   │   ├── enrichment.py              # Test catalog + payor rules lookup
-│   │   ├── code_evaluator.py          # ICD-10/CPT evaluation
-│   │   ├── criteria_evaluator.py      # Medical necessity evaluation
-│   │   ├── gap_detector.py            # Documentation gap detection
-│   │   └── risk_scorer.py             # Final risk score + report
-│   │
-│   ├── core/
-│   │   ├── __init__.py
-│   │   ├── llm.py                     # LiteLLM wrapper
-│   │   ├── prompts.py                 # All LLM prompts (versioned)
-│   │   └── pdf_parser.py              # PDF text extraction utility
-│   │
-│   ├── models/
-│   │   ├── __init__.py
-│   │   ├── order.py                   # Order input models (Pydantic)
-│   │   ├── evaluation.py              # PA evaluation output models
-│   │   ├── catalog.py                 # Test catalog models
-│   │   └── rules.py                   # Payor rules models
-│   │
-│   ├── db/
-│   │   ├── __init__.py
-│   │   ├── database.py                # DB connection (async SQLAlchemy)
-│   │   ├── models.py                  # ORM models
-│   │   └── seed.py                    # Seed payor rules + test catalog
-│   │
-│   ├── api/
-│   │   ├── __init__.py
-│   │   ├── routes_evaluate.py         # /evaluate endpoints
-│   │   ├── routes_catalog.py          # /catalog endpoints
-│   │   └── routes_rules.py            # /rules endpoints
-│   │
-│   └── services/
-│       ├── __init__.py
-│       ├── catalog_service.py         # Test catalog CRUD
-│       └── rules_service.py           # Payor rules CRUD
-│
-├── seed_data/
-│   ├── payors/
-│   │   ├── uhc_wes_wgs.json           # UnitedHealthcare WES/WGS rules
-│   │   └── aetna_wes_wgs.json         # Aetna WES/WGS rules
-│   ├── catalogs/
-│   │   └── sample_test_catalog.json   # Sample lab test catalog
-│   └── orders/
-│       └── sample_order.json          # Sample order for testing
-│
-├── tests/
-│   ├── __init__.py
-│   ├── test_agents/
-│   │   ├── test_code_evaluator.py
-│   │   ├── test_criteria_evaluator.py
-│   │   ├── test_gap_detector.py
-│   │   └── test_graph.py
-│   ├── test_api/
-│   │   └── test_evaluate.py
-│   └── conftest.py
-│
-└── scripts/
-    └── seed_db.py                     # Load seed data into DB
-```
+### Intake
+
+Two paths:
+- **Documents** — upload 1–4 PDFs. "Load sample dossier" for demo.
+- **JSON / Samples** — pick from 6 sample cases, paste JSON, or upload a single PDF.
+
+### Activity View
+
+- **Order context card** — persistent strip: test name, patient initial, payor, order ID
+- **Agent pipeline** — agents appear as they start. Parallel agents show "running" simultaneously. Status: spinner → check → error → skip, with summary messages.
+
+### Result View
+
+- **Risk verdict** — bordered card in risk color with headline + summary
+- **Issues** — severity-tagged, numbered, with resolutions. Open by default.
+- **Code evaluation** — per-code pass/fail
+- **Medical necessity** — per-criterion met/partial/not_met
+- **Documentation gaps** — per-item present/missing
+
+Light-mode aesthetic. Colors via CSS variables. Monospace for data, sans-serif for UI.
 
 ---
 
-## 6. Testing Strategy
+## 11. Cost Profile
 
-### Unit Tests
-- Each agent tested independently with mocked LLM responses
-- Payor rules engine tested with known inputs/outputs
-- Data model serialization/deserialization
-
-### Integration Tests
-- Full LangGraph workflow with a test order against seeded payor rules
-- API endpoint tests via FastAPI TestClient
-- PDF parsing with sample order PDFs
-
-### Evaluation Tests
-- Run the sample Baylor order (test code 1601, ICD-10 A01.3/A01.00/A01.1, payor 1199 National Benefit Fund) through the agent
-- Expected output: HIGH denial risk (infectious disease codes for WES)
-- Run a well-formed order and verify LOW denial risk
+| Provider | Model | Est. Cost/Eval | Speed |
+|---|---|---|---|
+| OpenAI | gpt-4o-mini | $0.01–0.02 | ~10–15s |
+| OpenAI | gpt-4o | $0.15–0.25 | ~15–25s |
+| Groq | llama-3.3-70b | Free (rate-limited) | ~8–12s |
+| Groq | llama-3.1-8b | Free (higher RPM) | ~6–10s |
+| Local MLX | Qwen3-8B | $0 | ~2–4 min |
+| Anthropic | claude-haiku-4-5 | ~$0.01–0.02 | ~10–15s |
 
 ---
 
-## 7. Seed Data (V1)
+## 12. Boundaries
 
-### Payor Rules to Seed
-
-**UnitedHealthcare (Commercial) — WES/WGS:**
-- Accepted CPT: 81415, 81416, 81417, 81425, 81426, 81427, 0094U, 0212U-0215U, 0260U, 0264U-0267U, plus others
-- Medical necessity criteria:
-  - Undiagnosed/unexplained disorder with suspected genetic cause
-  - Test results must directly impact medical management
-  - Doesn't fit a well-delineated genetic syndrome
-  - Ordered by: medical geneticist, neonatologist, neurologist, immunologist, or developmental pediatrician
-  - Clinical presentation: ONE of (multiple congenital anomalies 2+ organ systems, moderate+ intellectual disability dx by 18, global developmental delay, epileptic encephalopathy onset <3yr) OR TWO of (congenital anomaly, hearing/visual impairment, inborn error of metabolism, ASD, neuropsychiatric condition, hypotonia/hypertonia, movement disorder, unexplained regression, growth abnormality, immunologic/hematologic disorder, dysmorphic features, consanguinity, family member with similar dx)
-- Required documentation: genetic counseling recommended prior to testing
-- Exclusions: fetal demise evaluation, prenatal cell-free DNA, PGT, outpatient rapid WES/WGS
-
-**Aetna (Commercial) — WES/WGS:**
-- Medical necessity criteria:
-  - Genetic etiology considered most likely
-  - Board-certified geneticist consultation required
-  - Pre- and post-test genetic counseling by independent provider
-  - Alternate etiologies ruled out
-  - Standard clinical workup completed
-  - WES/WGS more efficient than separate tests
-  - Clinical fit for specific categories (congenital anomalies, sensorineural hearing loss, ASD with syndromic features, intractable epilepsy <=21, or 2+ of: structural abnormality, global dev delay, intellectual disability, family history, regression, metabolic findings)
-- Testing must guide prognosis, clinical decision-making, reduce diagnostic uncertainty, or inform reproductive counseling
-- Exclusions: WGS after non-diagnostic WES (negligible yield), isolated transient neonatal conditions, uncomplicated infection/sepsis
-
-### Test Catalog to Seed (Sample)
-
-| Test Code | Name | CPT Codes |
-|-----------|------|-----------|
-| 1600 | Trio Whole Exome Sequencing | 81415x1, 81416x2 |
-| 1601 | Sequential Trio WES | 81415x1, 81416x2 |
-| 1800 | Trio Whole Genome Sequencing | 81425x1, 81426x2 |
-| 1803 | Duo WGS | 81425x1, 81426x1 |
-| 1804 | Quad WGS | 81425x1, 81426x3 |
-| 1829 | Rapid Proband WGS | 81425x1 |
-
----
-
-## 8. Boundaries
-
-### Always Do
-- Evaluate codes as provided — never recommend alternative codes
-- Provide specific, actionable gap descriptions (not generic "more info needed")
-- Include reasoning for every finding (why this code was flagged, why this criterion isn't met)
+### Always
+- Evaluate codes as provided — never recommend alternatives
+- Provide specific, actionable gap descriptions
+- Include reasoning for every finding
 - Keep payor rules versioned with effective dates
 - Log every evaluation for audit trail
 
-### Ask First
-- Before adding new payor rules (require human review of extracted rules)
-- Before any action that would submit to a payor (out of scope for V1, but architecture should never auto-submit)
-
-### Never Do
-- Recommend or change ICD-10/CPT codes — agent evaluates, humans decide
+### Never
 - Auto-submit PA requests to payors
-- Store or log actual patient PII beyond what's needed for evaluation (future: add data retention policy)
-- Hardcode lab-specific logic — everything goes through configurable rules/catalog
+- Recommend or change ICD-10/CPT codes
+- Store patient PII beyond evaluation scope
+- Hardcode lab-specific logic
+
+### What This Agent Is Not
+- Not a PA submission tool — it evaluates; submission is a separate system
+- Not a clinical decision-maker — it's decision support
+- Not a guarantee of approval — it checks documented policy requirements
 
 ---
 
-## 9. Configuration
+## 13. Extending the System
 
-```env
-# .env
-LLM_MODEL=anthropic/claude-sonnet-4-20250514    # Any LiteLLM-supported model
-LLM_TEMPERATURE=0.1                              # Low temp for deterministic evaluations
-DATABASE_URL=sqlite:///./prior_auth.db           # Or postgresql://...
-LOG_LEVEL=INFO
-```
+### Add a new payor
+1. Obtain the payor's public genetic testing coverage policy
+2. Extract: accepted CPT, ICD-10 categories, criteria, required docs, provider requirements, exclusions
+3. Create `seed_data/payors/<payor>_<category>.json`
+4. Restart server
 
-Model swap is a single env var change. No code changes required.
+### Add a new test category
+1. Add to `seed_data/catalogs/sample_test_catalog.json` with CPT mappings
+2. Create payor rules for the new category
+3. Restart server
+
+### Add a new agent
+1. Create `app/agents/<name>.py`
+2. Add prompts to `app/core/prompts.py`
+3. Wire into `graph.py` and both streaming route files
+4. Pass `tag="<name>"` to `llm_call_json`
+5. Update docs
 
 ---
 
-## 10. V1 Scope vs Future
+## 14. V1 vs Future
 
 ### V1 (This Build)
-- Order input via JSON or PDF upload
-- LangGraph agent pipeline (6 agents)
-- Payor rules engine with UHC + Aetna seed data
-- Configurable test catalog
-- REST API for evaluation
-- PA evaluation output with denial risk score
+- Multi-document PDF upload + JSON order input
+- 6-agent pipeline with parallel code + criteria evaluation
+- UHC + Aetna payor rules seeded
+- SSE streaming UI with real-time agent progress
+- Per-call and per-evaluation cost/token logging
+- Model-agnostic (OpenAI, Groq, Anthropic, local MLX)
 
-### V2 (Future)
+### Future Possibilities
 - FHIR R4 integration for clinical data pull
-- Rules extraction agent (feed payor policy PDF → auto-extract rules)
-- Denial feedback loop (learn from past denials)
-- FHIR PAS / EDI X12 278 submission routing
-- Status polling and tracking
-- Frontend UI for human review
+- Rules extraction agent (feed payor policy PDF → auto-extract rules as JSON)
+- Denial feedback loop (learn from past denials to improve evaluation)
+- FHIR PAS / EDI X12 278 electronic submission
 - Multi-lab tenant support
+- Per-agent model selection (expensive model for document_analyzer, cheap for code_evaluator)
+- Prometheus metrics export for cost dashboards
