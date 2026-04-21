@@ -11,6 +11,7 @@ from app.models.evaluation import (
     GapReport,
     PAEvaluation,
 )
+from app.models.letter import MedicalNecessityLetter
 
 
 class AgentState(TypedDict, total=False):
@@ -34,6 +35,12 @@ class AgentState(TypedDict, total=False):
 
     # Final output
     evaluation: PAEvaluation
+
+    # Letter generation (opt-in)
+    generate_letter: bool
+    letter_mode: str | None  # "draft" | "placeholder" | "override" | None (auto)
+    letter: MedicalNecessityLetter | None
+    letter_refusal_reason: str | None
 
     # Errors
     errors: list[str]

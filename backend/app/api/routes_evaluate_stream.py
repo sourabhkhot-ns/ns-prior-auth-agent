@@ -19,6 +19,7 @@ from app.agents.code_evaluator import code_evaluator_node
 from app.agents.criteria_evaluator import criteria_evaluator_node
 from app.agents.gap_detector import gap_detector_node
 from app.agents.risk_scorer import risk_scorer_node
+from app.agents.letter_generator import letter_generator_node
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1", tags=["evaluation-stream"])
@@ -28,6 +29,8 @@ MAX_PDF_SIZE = 20 * 1024 * 1024  # 20MB
 
 class EvaluateRequest(BaseModel):
     order: Order
+    generate_letter: bool = False
+    letter_mode: str | None = None  # "draft" | "placeholder" | "override" | None (auto-from-risk)
 
 
 def _sse_event(event: str, data: dict) -> str:
@@ -55,6 +58,9 @@ def _build_pipeline(state: AgentState) -> list[list[tuple[str, str, object]]]:
 
     groups.append([("gap_detector", "Detecting documentation gaps", gap_detector_node)])
     groups.append([("risk_scorer", "Scoring denial risk", risk_scorer_node)])
+
+    if state.get("generate_letter"):
+        groups.append([("letter_generator", "Drafting medical necessity letter", letter_generator_node)])
 
     return groups
 
@@ -149,6 +155,12 @@ async def _run_pipeline_streaming(state: AgentState):
     eval_tag = evaluation.evaluation_id[:8] if evaluation else "failed"
     end_usage_tracking(eval_tag=eval_tag)
 
+    letter = state.get("letter")
+    if letter is not None:
+        yield _sse_event("letter", letter.model_dump(mode="json"))
+    elif state.get("generate_letter") and state.get("letter_refusal_reason"):
+        yield _sse_event("letter_refused", {"reason": state["letter_refusal_reason"]})
+
     if evaluation:
         yield _sse_event("result", evaluation.model_dump(mode="json"))
     else:
@@ -209,6 +221,15 @@ def _agent_summary(agent_id: str, state: AgentState) -> str:
             return f"Risk: {ev.denial_risk} — {len(ev.issues)} issues found"
         return "No evaluation"
 
+    if agent_id == "letter_generator":
+        letter = state.get("letter")
+        if letter:
+            return f"Letter drafted ({letter.mode} mode)"
+        reason = state.get("letter_refusal_reason")
+        if reason:
+            return "Letter not generated"
+        return "No letter"
+
     return ""
 
 
@@ -219,6 +240,8 @@ async def evaluate_order_stream(request: EvaluateRequest):
         "order": request.order,
         "input_is_pdf": False,
         "errors": [],
+        "generate_letter": request.generate_letter,
+        "letter_mode": request.letter_mode,
     }
 
     return StreamingResponse(
