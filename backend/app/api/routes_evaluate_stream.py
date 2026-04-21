@@ -93,6 +93,8 @@ async def _run_pipeline_streaming(state: AgentState):
                     "id": agent_id, "status": "completed", "label": label,
                     "message": _agent_summary(agent_id, state),
                 })
+                if agent_id in ("document_analyzer", "order_parser") and state.get("order"):
+                    yield _sse_event("order", state["order"].model_dump(mode="json"))
             except Exception as e:
                 logger.error("Agent %s failed: %s", agent_id, e)
                 state.setdefault("errors", []).append(f"{agent_id}: {e}")

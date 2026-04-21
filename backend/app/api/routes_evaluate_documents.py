@@ -85,6 +85,10 @@ async def _run_document_pipeline(state: AgentState, uploaded_docs: list[str], mi
                     "id": agent_id, "status": "completed", "label": label,
                     "message": _agent_summary(agent_id, state),
                 })
+                # After the extractor runs, surface the parsed order so the UI can
+                # hand it off to the MNF flow.
+                if agent_id in ("document_analyzer", "order_parser") and state.get("order"):
+                    yield _sse_event("order", state["order"].model_dump(mode="json"))
             except Exception as e:
                 logger.error("Agent %s failed: %s", agent_id, e)
                 state.setdefault("errors", []).append(f"{agent_id}: {e}")

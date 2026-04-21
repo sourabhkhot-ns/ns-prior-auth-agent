@@ -111,6 +111,14 @@ export default function Home() {
       );
     } else if (event === "result") {
       setResult(data as EvaluationData);
+    } else if (event === "order") {
+      // Parsed order surfaced from document_analyzer / order_parser —
+      // we stash it so the Generate MNF handoff works from the doc-upload path too.
+      try {
+        setLastOrderJson(JSON.stringify(data));
+      } catch {
+        // ignore — MNF button will simply stay disabled
+      }
     } else if (event === "error") {
       setError((data as { message: string }).message);
     }
@@ -387,7 +395,7 @@ export default function Home() {
                 </button>
                 {!lastOrderJson && (
                   <span className="text-[10px] text-[var(--muted)]">
-                    MNF generation requires a JSON/sample order (not available for document-only uploads yet)
+                    Parsed order not available yet — wait for the pipeline to finish
                   </span>
                 )}
               </div>
