@@ -90,12 +90,25 @@ async def generate_mnf_draft(
             category_for_rule = test_entry.category if test_entry else "WES_WGS"
             payor_rule = await find_payor_rule(session, payor_name, category_for_rule)
 
-    # Pick the template
+    # Pick the template — exact match first, then fall back to any template
+    # for this payor (with a flag), then give up.
     payor_id = payor_rule.payor_code if payor_rule else payor_name.upper().replace(" ", "_")
     template = _templates.find(payor_id, test_type)
+    template_fallback_note: str | None = None
+    if not template:
+        template = _templates.find_any_for_payor(payor_id)
+        if template:
+            template_fallback_note = (
+                f"No {payor_id} template for test type '{test_type}'. "
+                f"Using '{template.template_id}' (types: {', '.join(template.test_types)}) as a fallback — "
+                "a reviewer must adapt section headings and field labels if the submission target "
+                "is a different form."
+            )
+            logger.warning("MNF: %s", template_fallback_note)
     if not template:
         raise MNFError(
-            f"No MNF template available for payor '{payor_id}' and test type '{test_type}'."
+            f"No MNF template available for payor '{payor_id}' and test type '{test_type}'. "
+            "Add a template under backend/data/mnf/templates/ or check the payor mapping."
         )
     logger.info(
         "MNF: selected template=%s payor=%s test_type=%s",
@@ -136,6 +149,8 @@ async def generate_mnf_draft(
 
     # Validate
     errors, flags = validate(template, populated, narrative)
+    if template_fallback_note:
+        flags.insert(0, template_fallback_note)
 
     draft = DraftForm(
         draft_id=f"MNF-{uuid.uuid4().hex[:8].upper()}",

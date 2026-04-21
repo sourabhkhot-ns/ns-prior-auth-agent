@@ -86,3 +86,17 @@ class TemplateRegistry:
             if test_type in t.test_types and payor_matches(t):
                 return t
         return None
+
+    def find_any_for_payor(self, payor_id: str) -> FormTemplate | None:
+        """Fallback lookup: any non-archived template for this payor."""
+        self._ensure_loaded()
+
+        def payor_matches(t: FormTemplate) -> bool:
+            a = t.payor_id.upper()
+            b = payor_id.upper()
+            return a == b or a.split("_", 1)[0] == b.split("_", 1)[0]
+
+        for t in self._all:
+            if t.archived_date is None and payor_matches(t):
+                return t
+        return None
