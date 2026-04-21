@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { OrderForm } from "./components/order-form";
 import { DocumentUpload } from "./components/document-upload";
 import { AgentPipeline } from "./components/agent-pipeline";
@@ -227,11 +228,19 @@ export default function Home() {
     <main className="flex flex-col h-screen max-w-3xl mx-auto w-full">
       {/* Header */}
       <header className="shrink-0 px-6 pt-6 pb-4">
-        <div className="flex items-center gap-2.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
-          <h1 className="text-xs font-medium tracking-widest uppercase text-[var(--muted)]">
-            Prior Auth Agent
-          </h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
+            <h1 className="text-xs font-medium tracking-widest uppercase text-[var(--muted)]">
+              Prior Auth Agent
+            </h1>
+          </div>
+          <Link
+            href="/dashboard"
+            className="text-[10px] text-[var(--muted)] hover:text-[var(--accent)] transition-colors px-3 py-1.5 rounded border border-[var(--border)] hover:border-[var(--accent)]/30"
+          >
+            Dashboard
+          </Link>
         </div>
       </header>
 
