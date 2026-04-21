@@ -7,6 +7,7 @@ import { DocumentUpload } from "./components/document-upload";
 import { AgentPipeline } from "./components/agent-pipeline";
 import { UploadStatus, UploadStatusData } from "./components/upload-status";
 import { EvaluationResult } from "./components/evaluation-result";
+import { LetterCard } from "./components/letter-card";
 
 export type AgentStatus = "pending" | "running" | "completed" | "skipped" | "error";
 
@@ -45,6 +46,30 @@ export interface EvaluationData {
   }>;
 }
 
+export type LetterMode = "draft" | "placeholder" | "override";
+
+export interface LetterData {
+  mode: LetterMode;
+  generated_at: string;
+  payor_name: string;
+  policy_id: string;
+  policy_version: string;
+  patient_name: string;
+  test_name: string;
+  cpt_codes: string[];
+  icd10_codes: string[];
+  ordering_provider: string;
+  institution: string;
+  introduction: string;
+  clinical_summary: string;
+  medical_necessity_justification: string;
+  supporting_documentation: string[];
+  conclusion: string;
+  known_issues: Array<{ severity: string; category: string; description: string }>;
+  warnings: string[];
+  body_markdown: string;
+}
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 
 interface OrderContext {
@@ -62,6 +87,11 @@ export default function Home() {
   const [orderContext, setOrderContext] = useState<OrderContext | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [generateLetter, setGenerateLetter] = useState(false);
+  const [letter, setLetter] = useState<LetterData | null>(null);
+  const [letterRefusal, setLetterRefusal] = useState<string | null>(null);
+  const [lastOrderJson, setLastOrderJson] = useState<string | null>(null);
+  const [regenerating, setRegenerating] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -84,6 +114,12 @@ export default function Home() {
       );
     } else if (event === "result") {
       setResult(data as EvaluationData);
+    } else if (event === "letter") {
+      setLetter(data as LetterData);
+      setLetterRefusal(null);
+    } else if (event === "letter_refused") {
+      setLetter(null);
+      setLetterRefusal((data as { reason: string }).reason);
     } else if (event === "error") {
       setError((data as { message: string }).message);
     }
@@ -137,6 +173,9 @@ export default function Home() {
     setError(null);
     setAgents([]);
     setUploadStatus(null);
+    setLetter(null);
+    setLetterRefusal(null);
+    setLastOrderJson(null);
     setOrderContext({
       label: `${Object.keys(files).length} document${Object.keys(files).length === 1 ? "" : "s"} submitted`,
     });
@@ -145,6 +184,9 @@ export default function Home() {
       const formData = new FormData();
       for (const [key, file] of Object.entries(files)) {
         formData.append(key, file);
+      }
+      if (generateLetter) {
+        formData.append("generate_letter", "true");
       }
 
       const response = await fetch(`${API_URL}/api/v1/evaluate/documents/stream`, {
@@ -173,6 +215,9 @@ export default function Home() {
     setError(null);
     setAgents([]);
     setUploadStatus(null);
+    setLetter(null);
+    setLetterRefusal(null);
+    setLastOrderJson(orderJson);
 
     try {
       const parsed = JSON.parse(orderJson);
@@ -195,7 +240,10 @@ export default function Home() {
       const response = await fetch(`${API_URL}/api/v1/evaluate/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ order: JSON.parse(orderJson) }),
+        body: JSON.stringify({
+          order: JSON.parse(orderJson),
+          generate_letter: generateLetter,
+        }),
         signal: controller.signal,
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
@@ -213,6 +261,34 @@ export default function Home() {
     await runJsonEvaluation(orderJson);
   };
 
+  const regenerateLetter = async (targetMode: LetterMode) => {
+    if (!result || !lastOrderJson) return;
+    setRegenerating(true);
+    try {
+      const response = await fetch(`${API_URL}/api/v1/letter`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          order: JSON.parse(lastOrderJson),
+          evaluation: result,
+          letter_mode: targetMode,
+        }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const body = await response.json();
+      if (body.letter) {
+        setLetter(body.letter as LetterData);
+        setLetterRefusal(null);
+      } else {
+        setLetterRefusal(body.refusal_reason || "Letter not generated");
+      }
+    } catch (err) {
+      setError(`Letter regen failed: ${err instanceof Error ? err.message : "unknown"}`);
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
   const reset = () => {
     setAgents([]);
     setResult(null);
@@ -220,6 +296,9 @@ export default function Home() {
     setUploadStatus(null);
     setOrderContext(null);
     setIsRunning(false);
+    setLetter(null);
+    setLetterRefusal(null);
+    setLastOrderJson(null);
   };
 
   const hasActivity = agents.length > 0 || result || error || uploadStatus;
@@ -281,6 +360,18 @@ export default function Home() {
                 isRunning={isRunning}
               />
             )}
+
+            <label className="flex items-center gap-2 mt-6 select-none cursor-pointer w-fit group">
+              <input
+                type="checkbox"
+                checked={generateLetter}
+                onChange={(e) => setGenerateLetter(e.target.checked)}
+                className="appearance-none w-3.5 h-3.5 border border-[var(--border)] rounded-sm checked:bg-[var(--accent)] checked:border-[var(--accent)] transition-colors relative after:content-[''] after:absolute after:inset-0 after:bg-no-repeat after:bg-center after:bg-[length:10px_10px] checked:after:bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22 fill=%22white%22><path d=%22M5.5 10.5L3 8l-1 1 3.5 3.5L14 4l-1-1z%22/></svg>')]"
+              />
+              <span className="text-[11px] text-[var(--muted)] group-hover:text-[var(--foreground)] transition-colors">
+                Also draft a medical-necessity letter
+              </span>
+            </label>
           </div>
         )}
 
@@ -329,6 +420,16 @@ export default function Home() {
             )}
 
             {result && <EvaluationResult data={result} />}
+
+            {(letter || letterRefusal) && result && (
+              <LetterCard
+                letter={letter}
+                refusalReason={letterRefusal}
+                canRegenerate={!!lastOrderJson}
+                onRegenerate={regenerateLetter}
+                regenerating={regenerating}
+              />
+            )}
 
             {(result || error) && !isRunning && (
               <div className="pt-6 animate-fade-in">
