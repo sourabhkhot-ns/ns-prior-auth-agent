@@ -1,0 +1,46 @@
+{
+  "templateId": "aetna-hc-v1",
+  "payorId": "AETNA_COMMERCIAL",
+  "payorName": "Aetna",
+  "testTypes": ["hereditary_cancer_panel"],
+  "version": "1.0",
+  "effectiveDate": "2026-01-01",
+  "justificationFieldId": "clinical_justification",
+  "fields": [
+    { "fieldId": "patient_name_last", "label": "Patient Last Name", "fieldType": "text", "required": true, "section": "Patient Information", "dataSourceHint": "order.patient.last_name" },
+    { "fieldId": "patient_name_first", "label": "Patient First Name", "fieldType": "text", "required": true, "section": "Patient Information", "dataSourceHint": "order.patient.first_name" },
+    { "fieldId": "patient_dob", "label": "Date of Birth", "fieldType": "date", "required": true, "section": "Patient Information", "dataSourceHint": "order.patient.date_of_birth" },
+    { "fieldId": "patient_sex", "label": "Sex", "fieldType": "text", "required": true, "section": "Patient Information", "dataSourceHint": "order.patient.sex" },
+    { "fieldId": "patient_ethnicity", "label": "Patient Ethnicity", "fieldType": "text", "required": false, "section": "Patient Information", "dataSourceHint": "order.patient.ethnicity" },
+
+    { "fieldId": "member_id", "label": "Aetna Member ID", "fieldType": "text", "required": true, "section": "Insurance Information", "dataSourceHint": "order.insurance.primary.member_id" },
+    { "fieldId": "group_number", "label": "Group Number", "fieldType": "text", "required": false, "section": "Insurance Information", "dataSourceHint": "order.insurance.primary.group_id" },
+    { "fieldId": "prior_auth_number", "label": "Prior Authorization Number", "fieldType": "text", "required": false, "section": "Insurance Information", "dataSourceHint": "order.insurance.primary.authorization_number" },
+
+    { "fieldId": "ordering_provider_name", "label": "Ordering Provider Name", "fieldType": "text", "required": true, "section": "Provider Information", "dataSourceHint": "order.care_team.ordering_provider" },
+    { "fieldId": "provider_specialty", "label": "Provider Specialty", "fieldType": "text", "required": true, "section": "Provider Information", "helpText": "Aetna requires board-certified geneticist consultation" },
+    { "fieldId": "provider_npi", "label": "Provider NPI", "fieldType": "npi", "required": true, "section": "Provider Information" },
+    { "fieldId": "provider_phone", "label": "Provider Phone", "fieldType": "phone", "required": true, "section": "Provider Information" },
+    { "fieldId": "practice_name", "label": "Practice / Facility", "fieldType": "text", "required": true, "section": "Provider Information", "dataSourceHint": "order.care_team.institution_name" },
+
+    { "fieldId": "test_name", "label": "Test Ordered", "fieldType": "text", "required": true, "section": "Test Information", "dataSourceHint": "order.test_name" },
+    { "fieldId": "cpt_codes", "label": "CPT Code(s)", "fieldType": "multiselect", "required": true, "section": "Test Information", "dataSourceHint": "catalog.cpt_codes" },
+    { "fieldId": "gene_panel_detail", "label": "Specific Genes / Panel Tier", "fieldType": "textarea", "required": true, "section": "Test Information", "dataSourceHint": "order.clinical_info.genes_of_interest" },
+    { "fieldId": "specimen_type", "label": "Specimen Type", "fieldType": "text", "required": true, "section": "Test Information", "dataSourceHint": "order.sample.sample_type" },
+
+    { "fieldId": "icd10_codes", "label": "ICD-10 Code(s)", "fieldType": "multiselect", "required": true, "section": "Clinical Information", "dataSourceHint": "order.clinical_info.icd10_codes" },
+    { "fieldId": "clinical_indications", "label": "Clinical Indications", "fieldType": "textarea", "required": true, "maxLength": 500, "section": "Clinical Information", "dataSourceHint": "order.clinical_info.indications" },
+    { "fieldId": "family_history", "label": "Relevant Family History", "fieldType": "textarea", "required": true, "maxLength": 500, "section": "Clinical Information", "dataSourceHint": "order.clinical_info.family_history" },
+    { "fieldId": "prior_testing", "label": "Prior Genetic Testing", "fieldType": "textarea", "required": false, "maxLength": 500, "section": "Clinical Information", "dataSourceHint": "order.clinical_info.prior_testing_details" },
+
+    { "fieldId": "clinical_justification", "label": "Clinical Justification for Medical Necessity", "fieldType": "textarea", "required": true, "maxLength": 2000, "section": "Medical Necessity" },
+    { "fieldId": "planned_management_if_positive", "label": "Planned Clinical Management if Positive", "fieldType": "textarea", "required": true, "section": "Medical Necessity" },
+
+    { "fieldId": "genetic_counseling_completed", "label": "Pre-test Genetic Counseling Completed", "fieldType": "checkbox", "required": true, "section": "Consent & Attestation" },
+    { "fieldId": "post_test_counseling_planned", "label": "Post-test Genetic Counseling Planned", "fieldType": "checkbox", "required": true, "section": "Consent & Attestation", "helpText": "Aetna CPB 0140 requires post-test counseling" },
+    { "fieldId": "informed_consent", "label": "Informed Consent Obtained", "fieldType": "checkbox", "required": true, "section": "Consent & Attestation" },
+
+    { "fieldId": "physician_signature", "label": "Physician Signature", "fieldType": "text", "required": true, "section": "Attestation" },
+    { "fieldId": "signature_date", "label": "Date Signed", "fieldType": "date", "required": true, "section": "Attestation" }
+  ]
+}

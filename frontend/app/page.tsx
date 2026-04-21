@@ -2,12 +2,12 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { OrderForm } from "./components/order-form";
 import { DocumentUpload } from "./components/document-upload";
 import { AgentPipeline } from "./components/agent-pipeline";
 import { UploadStatus, UploadStatusData } from "./components/upload-status";
 import { EvaluationResult } from "./components/evaluation-result";
-import { LetterCard } from "./components/letter-card";
 
 export type AgentStatus = "pending" | "running" | "completed" | "skipped" | "error";
 
@@ -80,6 +80,7 @@ interface OrderContext {
 }
 
 export default function Home() {
+  const router = useRouter();
   const [mode, setMode] = useState<"documents" | "json">("documents");
   const [agents, setAgents] = useState<AgentUpdate[]>([]);
   const [result, setResult] = useState<EvaluationData | null>(null);
@@ -87,11 +88,7 @@ export default function Home() {
   const [orderContext, setOrderContext] = useState<OrderContext | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [generateLetter, setGenerateLetter] = useState(false);
-  const [letter, setLetter] = useState<LetterData | null>(null);
-  const [letterRefusal, setLetterRefusal] = useState<string | null>(null);
   const [lastOrderJson, setLastOrderJson] = useState<string | null>(null);
-  const [regenerating, setRegenerating] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -114,12 +111,6 @@ export default function Home() {
       );
     } else if (event === "result") {
       setResult(data as EvaluationData);
-    } else if (event === "letter") {
-      setLetter(data as LetterData);
-      setLetterRefusal(null);
-    } else if (event === "letter_refused") {
-      setLetter(null);
-      setLetterRefusal((data as { reason: string }).reason);
     } else if (event === "error") {
       setError((data as { message: string }).message);
     }
@@ -173,8 +164,6 @@ export default function Home() {
     setError(null);
     setAgents([]);
     setUploadStatus(null);
-    setLetter(null);
-    setLetterRefusal(null);
     setLastOrderJson(null);
     setOrderContext({
       label: `${Object.keys(files).length} document${Object.keys(files).length === 1 ? "" : "s"} submitted`,
@@ -184,9 +173,6 @@ export default function Home() {
       const formData = new FormData();
       for (const [key, file] of Object.entries(files)) {
         formData.append(key, file);
-      }
-      if (generateLetter) {
-        formData.append("generate_letter", "true");
       }
 
       const response = await fetch(`${API_URL}/api/v1/evaluate/documents/stream`, {
@@ -215,8 +201,6 @@ export default function Home() {
     setError(null);
     setAgents([]);
     setUploadStatus(null);
-    setLetter(null);
-    setLetterRefusal(null);
     setLastOrderJson(orderJson);
 
     try {
@@ -242,7 +226,6 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           order: JSON.parse(orderJson),
-          generate_letter: generateLetter,
         }),
         signal: controller.signal,
       });
@@ -261,33 +244,16 @@ export default function Home() {
     await runJsonEvaluation(orderJson);
   };
 
-  const regenerateLetter = async (targetMode: LetterMode) => {
+  const handleGenerateMnf = useCallback(() => {
     if (!result || !lastOrderJson) return;
-    setRegenerating(true);
     try {
-      const response = await fetch(`${API_URL}/api/v1/letter`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          order: JSON.parse(lastOrderJson),
-          evaluation: result,
-          letter_mode: targetMode,
-        }),
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const body = await response.json();
-      if (body.letter) {
-        setLetter(body.letter as LetterData);
-        setLetterRefusal(null);
-      } else {
-        setLetterRefusal(body.refusal_reason || "Letter not generated");
-      }
+      const payload = { order: JSON.parse(lastOrderJson), evaluation: result };
+      sessionStorage.setItem("mnfHandoff", JSON.stringify(payload));
+      router.push("/mnf");
     } catch (err) {
-      setError(`Letter regen failed: ${err instanceof Error ? err.message : "unknown"}`);
-    } finally {
-      setRegenerating(false);
+      setError(`Unable to hand off to MNF: ${err instanceof Error ? err.message : "unknown"}`);
     }
-  };
+  }, [result, lastOrderJson, router]);
 
   const reset = () => {
     setAgents([]);
@@ -296,8 +262,6 @@ export default function Home() {
     setUploadStatus(null);
     setOrderContext(null);
     setIsRunning(false);
-    setLetter(null);
-    setLetterRefusal(null);
     setLastOrderJson(null);
   };
 
@@ -360,18 +324,6 @@ export default function Home() {
                 isRunning={isRunning}
               />
             )}
-
-            <label className="flex items-center gap-2 mt-6 select-none cursor-pointer w-fit group">
-              <input
-                type="checkbox"
-                checked={generateLetter}
-                onChange={(e) => setGenerateLetter(e.target.checked)}
-                className="appearance-none w-3.5 h-3.5 border border-[var(--border)] rounded-sm checked:bg-[var(--accent)] checked:border-[var(--accent)] transition-colors relative after:content-[''] after:absolute after:inset-0 after:bg-no-repeat after:bg-center after:bg-[length:10px_10px] checked:after:bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22 fill=%22white%22><path d=%22M5.5 10.5L3 8l-1 1 3.5 3.5L14 4l-1-1z%22/></svg>')]"
-              />
-              <span className="text-[11px] text-[var(--muted)] group-hover:text-[var(--foreground)] transition-colors">
-                Also draft a medical-necessity letter
-              </span>
-            </label>
           </div>
         )}
 
@@ -421,18 +373,28 @@ export default function Home() {
 
             {result && <EvaluationResult data={result} />}
 
-            {(letter || letterRefusal) && result && (
-              <LetterCard
-                letter={letter}
-                refusalReason={letterRefusal}
-                canRegenerate={!!lastOrderJson}
-                onRegenerate={regenerateLetter}
-                regenerating={regenerating}
-              />
+            {result && !isRunning && (
+              <div className="pt-6 animate-fade-in flex items-center gap-3 flex-wrap">
+                <button
+                  onClick={handleGenerateMnf}
+                  disabled={!lastOrderJson}
+                  className="text-xs bg-[var(--foreground)] text-[var(--background)] font-medium rounded px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed inline-flex items-center gap-2"
+                >
+                  Generate medical necessity form
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+                {!lastOrderJson && (
+                  <span className="text-[10px] text-[var(--muted)]">
+                    MNF generation requires a JSON/sample order (not available for document-only uploads yet)
+                  </span>
+                )}
+              </div>
             )}
 
             {(result || error) && !isRunning && (
-              <div className="pt-6 animate-fade-in">
+              <div className="pt-3 animate-fade-in">
                 <button
                   onClick={reset}
                   className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors border border-[var(--border)] rounded px-3 py-1.5 hover:border-[var(--muted)]"
