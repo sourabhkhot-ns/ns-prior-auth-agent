@@ -1,11 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MnfFieldGroup } from "../components/mnf-field-group";
 import { MnfLayersCard } from "../components/mnf-layers-card";
 import { MnfGuidelines } from "../components/mnf-guidelines";
+import { AgentPipeline } from "../components/agent-pipeline";
+import type { AgentStatus, AgentUpdate } from "../page";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 
@@ -74,11 +76,57 @@ export interface MnfDraft {
 export default function MnfPage() {
   const router = useRouter();
   const [draft, setDraft] = useState<MnfDraft | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
+  const [agents, setAgents] = useState<AgentUpdate[]>([]);
+  const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editedFields, setEditedFields] = useState<Record<string, MnfPopulatedField["value"]>>({});
   const [editedNarrative, setEditedNarrative] = useState<string | null>(null);
+  const startedRef = useRef(false);
+
+  const processStream = useCallback(async (response: Response) => {
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+    if (!reader) throw new Error("No response body");
+
+    let buffer = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      let eventType = "";
+      for (const line of lines) {
+        if (line.startsWith("event: ")) {
+          eventType = line.slice(7).trim();
+        } else if (line.startsWith("data: ") && eventType) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            handleSSE(eventType, data);
+          } catch {
+            /* malformed line — skip */
+          }
+          eventType = "";
+        }
+      }
+    }
+  }, []);
+
+  const handleSSE = (event: string, data: unknown) => {
+    if (event === "pipeline") {
+      const payload = data as { agents: AgentUpdate[] };
+      setAgents(payload.agents);
+    } else if (event === "agent_update") {
+      const u = data as { id: string; label: string; status: AgentStatus; message?: string };
+      setAgents((prev) => prev.map((a) => (a.id === u.id ? { ...a, ...u } : a)));
+    } else if (event === "result") {
+      setDraft(data as MnfDraft);
+    } else if (event === "error") {
+      setError((data as { message?: string }).message || "Unknown error");
+    }
+  };
 
   const generate = useCallback(async () => {
     let payload: { order: unknown; evaluation: unknown } | null = null;
@@ -86,20 +134,23 @@ export default function MnfPage() {
       const raw = sessionStorage.getItem("mnfHandoff");
       if (!raw) {
         setError("No order handoff found. Run an evaluation first, then click Generate.");
-        setLoading(false);
         return;
       }
       payload = JSON.parse(raw);
     } catch (err) {
       setError(`Handoff payload could not be parsed: ${err instanceof Error ? err.message : "unknown"}`);
-      setLoading(false);
       return;
     }
 
-    setGenerating(true);
+    setIsRunning(true);
     setError(null);
+    setDraft(null);
+    setAgents([]);
+    setEditedFields({});
+    setEditedNarrative(null);
+
     try {
-      const response = await fetch(`${API_URL}/api/v1/mnf/generate`, {
+      const response = await fetch(`${API_URL}/api/v1/mnf/generate/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -108,19 +159,18 @@ export default function MnfPage() {
         const text = await response.text();
         throw new Error(`${response.status}: ${text}`);
       }
-      const d = (await response.json()) as MnfDraft;
-      setDraft(d);
-      setEditedFields({});
-      setEditedNarrative(null);
+      await processStream(response);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
-      setGenerating(false);
-      setLoading(false);
+      setIsRunning(false);
     }
-  }, []);
+  }, [processStream]);
 
+  // Auto-start on mount, guard against StrictMode double-invocation.
   useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
     void generate();
   }, [generate]);
 
@@ -209,16 +259,20 @@ export default function MnfPage() {
       </header>
 
       <div className="flex-1 px-6 py-6 space-y-5">
-        {loading && (
-          <div className="py-20 text-center animate-fade-in">
-            <div className="inline-block w-5 h-5 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin-slow mb-3" />
-            <p className="text-sm text-[var(--muted)]">
-              {generating ? "Drafting the form and weaving the justification…" : "Loading…"}
-            </p>
+        {/* Pipeline view — visible while agents are streaming */}
+        {(isRunning || agents.length > 0) && !mergedDraft && (
+          <div className="animate-fade-in">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
+              <span className="text-[10px] tracking-widest uppercase text-[var(--muted)] font-medium">
+                MNF pipeline
+              </span>
+            </div>
+            <AgentPipeline agents={agents} />
           </div>
         )}
 
-        {!loading && error && (
+        {!isRunning && error && (
           <div className="border-l-2 border-[var(--error)] pl-4 py-2 animate-slide-in">
             <p className="text-xs text-[var(--error)] mb-2">{error}</p>
             <button
@@ -230,15 +284,13 @@ export default function MnfPage() {
           </div>
         )}
 
-        {!loading && mergedDraft && (
+        {mergedDraft && (
           <>
             {/* Summary bar */}
-            <div className="border border-[var(--border)] bg-[var(--surface)] rounded-lg px-5 py-4 flex flex-wrap items-center gap-x-6 gap-y-2">
+            <div className="border border-[var(--border)] bg-[var(--surface)] rounded-lg px-5 py-4 flex flex-wrap items-center gap-x-6 gap-y-2 animate-slide-in">
               <div>
                 <div className="text-[10px] uppercase tracking-widest text-[var(--muted)]">Payor</div>
-                <div className="text-sm text-[var(--foreground)]">
-                  {mergedDraft.template.payor_name}
-                </div>
+                <div className="text-sm text-[var(--foreground)]">{mergedDraft.template.payor_name}</div>
               </div>
               <div>
                 <div className="text-[10px] uppercase tracking-widest text-[var(--muted)]">Template</div>
@@ -248,23 +300,19 @@ export default function MnfPage() {
               </div>
               <div>
                 <div className="text-[10px] uppercase tracking-widest text-[var(--muted)]">Order</div>
-                <div className="text-sm font-mono text-[var(--foreground)]">
-                  {mergedDraft.order_id}
-                </div>
+                <div className="text-sm font-mono text-[var(--foreground)]">{mergedDraft.order_id}</div>
               </div>
               <div>
                 <div className="text-[10px] uppercase tracking-widest text-[var(--muted)]">Draft</div>
-                <div className="text-sm font-mono text-[var(--foreground)]">
-                  {mergedDraft.draft_id}
-                </div>
+                <div className="text-sm font-mono text-[var(--foreground)]">{mergedDraft.draft_id}</div>
               </div>
               <div className="ml-auto flex items-center gap-2">
                 <button
                   onClick={generate}
-                  disabled={generating}
+                  disabled={isRunning}
                   className="text-[10px] px-3 py-1.5 rounded border border-[var(--border)] hover:border-[var(--muted)] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors disabled:opacity-50"
                 >
-                  {generating ? "Regenerating…" : "Regenerate"}
+                  {isRunning ? "Regenerating…" : "Regenerate"}
                 </button>
                 <button
                   onClick={downloadPdf}
@@ -343,17 +391,14 @@ export default function MnfPage() {
               />
             </div>
 
-            {/* Layer breakdown */}
             {mergedDraft.justification_layers && (
               <MnfLayersCard layers={mergedDraft.justification_layers} />
             )}
 
-            {/* Guidelines */}
             {mergedDraft.guidelines_cited.length > 0 && (
               <MnfGuidelines guidelines={mergedDraft.guidelines_cited} />
             )}
 
-            {/* Footer actions */}
             <div className="pt-2 flex items-center gap-3 flex-wrap">
               <button
                 onClick={downloadPdf}

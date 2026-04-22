@@ -105,20 +105,23 @@ def _strip_markdown(text: str) -> str:
     return out.strip()
 
 
-async def _layer(system: str, user: str, tag: str) -> str:
+async def run_layer(system: str, user: str, tag: str) -> str:
+    """Public helper: make one LLM call with the MNF system prompt and strip markdown."""
     raw = await llm_call(system_prompt=system, user_prompt=user, tag=tag)
     return _strip_markdown(raw or "")
 
 
-async def generate_justification(
+# Alias kept for backwards compatibility with callers that imported _layer directly.
+_layer = run_layer
+
+
+def build_layer_prompts(
     order: Order,
     test_entry: TestCatalogEntry | None,
     guidelines: list[GuidelineCitation],
-    calibration: CalibrationParams,
-    payor_name: str,
     test_type: str,
-) -> tuple[JustificationLayers, str]:
-    """Run the 4 layer prompts in parallel, then weave. Returns (layers, narrative)."""
+) -> dict[str, str]:
+    """Assemble the 4 user prompts for the justification layers (no LLM calls)."""
     test_name = (test_entry.test_name if test_entry else order.test_name) or order.test_code
     cpt_codes = test_entry.cpt_codes if test_entry else []
     cpt_str = ", ".join(cpt_codes) if cpt_codes else "(not listed)"
@@ -130,77 +133,63 @@ async def generate_justification(
         f"Ethnicity: {', '.join(patient.ethnicity)}"
         if patient.ethnicity else ""
     )
-
     genes_line = (
         f"Genes on panel: {', '.join(order.clinical_info.genes_of_interest)}"
         if order.clinical_info.genes_of_interest else ""
     )
-
     test_context = TEST_CONTEXTS.get(test_type, "")
     utility_context = UTILITY_CONTEXTS.get(
         test_type,
         "  - If positive: clinical management may change based on identified variants\n"
         "  - If negative: current management continues",
     )
-
-    patient_prompt = PATIENT_LAYER_USER.format(
-        patient_name=full_name or "Patient",
-        age_str=age_str,
-        dob=patient.date_of_birth.isoformat() if patient.date_of_birth else "not recorded",
-        sex=patient.sex,
-        ethnicity_line=ethnicity_line,
-        indications_block=_indications_block(order),
-        family_history_block=_family_history_block(order),
-        prior_testing_block=_prior_testing_block(order),
-        provider_notes_block=_provider_notes_block(order),
-    )
-
     prior_testing_note = (
         "NOTE: Prior testing was performed — explain why this additional/broader test is "
         "needed despite that." if order.clinical_info.prior_genetic_testing else ""
     )
 
-    test_prompt = TEST_LAYER_USER.format(
-        test_name=test_name,
-        test_type=test_type or "(not specified)",
-        genes_line=genes_line,
-        cpt_codes_str=cpt_str,
-        indications_block=_indications_block(order),
-        test_context=test_context or "(no standard context on file for this test type)",
-        prior_testing_note=prior_testing_note,
-    )
+    return {
+        "patient": PATIENT_LAYER_USER.format(
+            patient_name=full_name or "Patient",
+            age_str=age_str,
+            dob=patient.date_of_birth.isoformat() if patient.date_of_birth else "not recorded",
+            sex=patient.sex,
+            ethnicity_line=ethnicity_line,
+            indications_block=_indications_block(order),
+            family_history_block=_family_history_block(order),
+            prior_testing_block=_prior_testing_block(order),
+            provider_notes_block=_provider_notes_block(order),
+        ),
+        "test": TEST_LAYER_USER.format(
+            test_name=test_name,
+            test_type=test_type or "(not specified)",
+            genes_line=genes_line,
+            cpt_codes_str=cpt_str,
+            indications_block=_indications_block(order),
+            test_context=test_context or "(no standard context on file for this test type)",
+            prior_testing_note=prior_testing_note,
+        ),
+        "guideline": GUIDELINE_LAYER_USER.format(
+            test_type=test_type or "(not specified)",
+            indications_inline=_indications_inline(order),
+            guidelines_block=_guidelines_block(guidelines),
+        ),
+        "utility": UTILITY_LAYER_USER.format(
+            test_name=test_name,
+            test_type=test_type or "(not specified)",
+            age_str=age_str,
+            sex=patient.sex,
+            indications_inline=_indications_inline(order),
+            utility_context=utility_context,
+        ),
+    }
 
-    guideline_prompt = GUIDELINE_LAYER_USER.format(
-        test_type=test_type or "(not specified)",
-        indications_inline=_indications_inline(order),
-        guidelines_block=_guidelines_block(guidelines),
-    )
 
-    utility_prompt = UTILITY_LAYER_USER.format(
-        test_name=test_name,
-        test_type=test_type or "(not specified)",
-        age_str=age_str,
-        sex=patient.sex,
-        indications_inline=_indications_inline(order),
-        utility_context=utility_context,
-    )
-
-    logger.info("Generating MNF justification for order %s", order.order_id)
-
-    patient_layer, test_layer, guideline_layer, utility_layer = await asyncio.gather(
-        _layer(MNF_SYSTEM, patient_prompt, tag="mnf.patient"),
-        _layer(MNF_SYSTEM, test_prompt, tag="mnf.test"),
-        _layer(MNF_SYSTEM, guideline_prompt, tag="mnf.guideline"),
-        _layer(MNF_SYSTEM, utility_prompt, tag="mnf.utility"),
-    )
-
-    layers = JustificationLayers(
-        patient=patient_layer,
-        test=test_layer,
-        guideline=guideline_layer,
-        clinical_utility=utility_layer,
-    )
-
+def build_weaving_prompt(
+    layers: JustificationLayers,
+    calibration: CalibrationParams,
+    payor_name: str,
+) -> str:
     emphasis_lines_parts: list[str] = []
     if calibration.emphasize_family_history:
         emphasis_lines_parts.append(
@@ -213,11 +202,11 @@ async def generate_justification(
     emphasis_lines = ("\n".join(emphasis_lines_parts) + "\n") if emphasis_lines_parts else ""
     notes_line = f"Additional Guidance: {calibration.notes}" if calibration.notes else ""
 
-    weaving_prompt = WEAVING_USER.format(
-        patient_layer=patient_layer,
-        test_layer=test_layer,
-        guideline_layer=guideline_layer,
-        utility_layer=utility_layer,
+    return WEAVING_USER.format(
+        patient_layer=layers.patient,
+        test_layer=layers.test,
+        guideline_layer=layers.guideline,
+        utility_layer=layers.clinical_utility,
         payor_name=payor_name,
         detail_level=calibration.detail_level,
         target_word_count=calibration.target_word_count,
@@ -226,5 +215,30 @@ async def generate_justification(
         notes_line=notes_line,
     )
 
-    narrative = await _layer(MNF_SYSTEM, weaving_prompt, tag="mnf.weave")
+
+async def generate_justification(
+    order: Order,
+    test_entry: TestCatalogEntry | None,
+    guidelines: list[GuidelineCitation],
+    calibration: CalibrationParams,
+    payor_name: str,
+    test_type: str,
+) -> tuple[JustificationLayers, str]:
+    """Run the 4 layer prompts in parallel, then weave. Non-streaming wrapper."""
+    logger.info("Generating MNF justification for order %s", order.order_id)
+    prompts = build_layer_prompts(order, test_entry, guidelines, test_type)
+    patient_layer, test_layer, guideline_layer, utility_layer = await asyncio.gather(
+        run_layer(MNF_SYSTEM, prompts["patient"], tag="mnf.patient"),
+        run_layer(MNF_SYSTEM, prompts["test"], tag="mnf.test"),
+        run_layer(MNF_SYSTEM, prompts["guideline"], tag="mnf.guideline"),
+        run_layer(MNF_SYSTEM, prompts["utility"], tag="mnf.utility"),
+    )
+    layers = JustificationLayers(
+        patient=patient_layer,
+        test=test_layer,
+        guideline=guideline_layer,
+        clinical_utility=utility_layer,
+    )
+    weaving_prompt = build_weaving_prompt(layers, calibration, payor_name)
+    narrative = await run_layer(MNF_SYSTEM, weaving_prompt, tag="mnf.weave")
     return layers, narrative
