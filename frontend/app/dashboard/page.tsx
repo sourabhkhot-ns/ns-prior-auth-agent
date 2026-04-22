@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -419,6 +419,65 @@ function buildOrderFromPatient(p: Patient) {
 }
 
 /* ──────────────────────────────────────────────
+   Missing-document email drafter.
+   Patient-side docs (consent, demographics, insurance card,
+   family history pedigree) are asked of the patient; everything
+   else is asked of the ordering provider.
+   ────────────────────────────────────────────── */
+
+const PATIENT_SIDE_DOCS = new Set([
+  "informedConsent",
+  "patientDemographics",
+  "insuranceCardFrontBack",
+  "familyHistoryPedigree",
+]);
+
+interface EmailDraft {
+  to: string;
+  toName: string;
+  subject: string;
+  body: string;
+}
+
+function generateMissingDocEmail(patient: Patient, docKey: string): EmailDraft {
+  const docName = DOC_LABELS[docKey] ?? docKey;
+  const isPatientSide = PATIENT_SIDE_DOCS.has(docKey);
+  const recipientName = isPatientSide
+    ? patient.name
+    : (patient.orderingPhysician);
+  const recipientEmail = isPatientSide
+    ? (patient.email ?? "patient@example.com")
+    : (patient.physicianEmail ?? "orders@clinic.example.com");
+
+  const subject = `ACTION REQUIRED: ${docName} — ${patient.name} (${patient.id})`;
+  const body = [
+    `Dear ${recipientName},`,
+    "",
+    `We are processing genetic testing order ${patient.id} (accession ${patient.accession})`,
+    `for ${isPatientSide ? "you" : `${patient.name} (${patient.mrn})`} and need the following`,
+    "document before prior authorization can proceed:",
+    "",
+    `  Missing: ${docName}`,
+    "",
+    `Test: ${patient.testPanel}`,
+    `Payor: ${patient.insurance}`,
+    "",
+    isPatientSide
+      ? "Please reply with the document attached, or bring it to your next appointment."
+      : "Please fax (800-555-0101), upload to the provider portal, or reply with attachment.",
+    "",
+    `Reference order ${patient.id} in all correspondence.`,
+    "",
+    "Thank you,",
+    "Clinical Operations",
+    "Laboratory",
+    "(800) 555-0100 · Fax: (800) 555-0101",
+  ].join("\n");
+
+  return { to: recipientEmail, toName: recipientName, subject, body };
+}
+
+/* ──────────────────────────────────────────────
    Visual primitives
    ────────────────────────────────────────────── */
 
@@ -483,6 +542,7 @@ export default function Dashboard() {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(PATIENTS[0]?.id ?? null);
   const [search, setSearch] = useState("");
+  const [emailDraft, setEmailDraft] = useState<{ patientId: string; docKey: string; draft: EmailDraft } | null>(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -509,6 +569,14 @@ export default function Dashboard() {
       // private browsing — fall through.
     }
     router.push("/");
+  };
+
+  const openEmailDraft = (patient: Patient, docKey: string) => {
+    setEmailDraft({
+      patientId: patient.id,
+      docKey,
+      draft: generateMissingDocEmail(patient, docKey),
+    });
   };
 
   const missingDocCount = PATIENTS.reduce(
@@ -630,10 +698,18 @@ export default function Dashboard() {
               <p className="text-xs text-[var(--muted)]">Select an order to see details.</p>
             </div>
           ) : (
-            <DetailPanel patient={selected} onRun={runPriorAuth} />
+            <DetailPanel patient={selected} onRun={runPriorAuth} onDraftEmail={openEmailDraft} />
           )}
         </div>
       </div>
+
+      {emailDraft && (
+        <EmailDraftModal
+          draft={emailDraft.draft}
+          onChange={(d) => setEmailDraft((prev) => (prev ? { ...prev, draft: d } : prev))}
+          onClose={() => setEmailDraft(null)}
+        />
+      )}
     </main>
   );
 }
@@ -642,7 +718,15 @@ export default function Dashboard() {
    Detail panel — rich patient view
    ────────────────────────────────────────────── */
 
-function DetailPanel({ patient, onRun }: { patient: Patient; onRun: (p: Patient) => void }) {
+function DetailPanel({
+  patient,
+  onRun,
+  onDraftEmail,
+}: {
+  patient: Patient;
+  onRun: (p: Patient) => void;
+  onDraftEmail: (p: Patient, docKey: string) => void;
+}) {
   return (
     <div className="space-y-4">
       {/* Top bar: name + CTA */}
@@ -776,15 +860,29 @@ function DetailPanel({ patient, onRun }: { patient: Patient; onRun: (p: Patient)
 
         <Card title="Documents">
           <ul className="space-y-1">
-            {Object.entries(patient.documents).map(([k, v]) => (
-              <li key={k} className="flex items-center justify-between text-[11px] py-0.5">
-                <span className="text-[var(--muted)]">{DOC_LABELS[k] ?? k}</span>
-                <div className="flex items-center gap-2">
-                  {v.date && <span className="text-[10px] font-mono text-[var(--muted-soft)]">{v.date}</span>}
-                  <StatusChip status={v.status} size="xs" />
-                </div>
-              </li>
-            ))}
+            {Object.entries(patient.documents).map(([k, v]) => {
+              const missing = v.status === "missing";
+              return (
+                <li key={k} className="flex items-center justify-between gap-2 text-[11px] py-0.5">
+                  <span className={`${missing ? "text-[var(--foreground)]" : "text-[var(--muted)]"} truncate`}>
+                    {DOC_LABELS[k] ?? k}
+                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {v.date && <span className="text-[10px] font-mono text-[var(--muted-soft)]">{v.date}</span>}
+                    <StatusChip status={v.status} size="xs" />
+                    {missing && (
+                      <button
+                        onClick={() => onDraftEmail(patient, k)}
+                        className="text-[10px] text-[var(--accent)] hover:underline"
+                        title="Draft an email requesting this document"
+                      >
+                        Draft email
+                      </button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </Card>
       </div>
@@ -869,6 +967,148 @@ function Block({ label, value }: { label: string; value: string }) {
     <div className="py-1">
       <div className="text-[9px] tracking-widest uppercase text-[var(--muted-soft)] mb-1">{label}</div>
       <p className="text-[11px] text-[var(--foreground)]/90 leading-relaxed whitespace-pre-line">{value}</p>
+    </div>
+  );
+}
+
+function EmailDraftModal({
+  draft,
+  onChange,
+  onClose,
+}: {
+  draft: EmailDraft;
+  onChange: (d: EmailDraft) => void;
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState<"none" | "body" | "all">("none");
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const copy = (text: string, which: "body" | "all") => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(which);
+      setTimeout(() => setCopied("none"), 1400);
+    });
+  };
+
+  const downloadTxt = () => {
+    const lines = [
+      `To: ${draft.toName} <${draft.to}>`,
+      `Subject: ${draft.subject}`,
+      "",
+      draft.body,
+    ].join("\n");
+    const blob = new Blob([lines], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `email-draft-${Date.now()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const mailto = `mailto:${encodeURIComponent(draft.to)}?subject=${encodeURIComponent(draft.subject)}&body=${encodeURIComponent(draft.body)}`;
+
+  const fullText =
+    `To: ${draft.toName} <${draft.to}>\nSubject: ${draft.subject}\n\n${draft.body}`;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-[var(--foreground)]/30 backdrop-blur-sm flex items-start justify-center px-4 py-10 overflow-y-auto"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-2xl bg-[var(--background)] border border-[var(--border)] rounded-lg shadow-xl animate-fade-in"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-5 py-3 border-b border-[var(--border)] bg-[var(--surface)] flex items-center justify-between">
+          <div className="text-[10px] tracking-widest uppercase text-[var(--muted)] font-medium">
+            Draft email
+          </div>
+          <button
+            onClick={onClose}
+            className="text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+            aria-label="Close"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M4 4L10 10M10 4L4 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="p-5 space-y-3">
+          <EmailField label="To" value={`${draft.toName} <${draft.to}>`} onChange={(v) => {
+            const match = v.match(/^(.*?)\s*<(.+?)>\s*$/);
+            if (match) onChange({ ...draft, toName: match[1].trim(), to: match[2].trim() });
+            else onChange({ ...draft, to: v });
+          }} />
+          <EmailField label="Subject" value={draft.subject} onChange={(v) => onChange({ ...draft, subject: v })} />
+          <div>
+            <div className="text-[10px] tracking-widest uppercase text-[var(--muted-soft)] mb-1">Body</div>
+            <textarea
+              value={draft.body}
+              onChange={(e) => onChange({ ...draft, body: e.target.value })}
+              rows={14}
+              className="w-full text-[12px] leading-relaxed bg-[var(--surface)] border border-[var(--border)] rounded px-3 py-2 text-[var(--foreground)] focus:outline-none focus:border-[var(--muted)] resize-y font-sans"
+            />
+          </div>
+        </div>
+
+        <div className="px-5 py-3 border-t border-[var(--border)] bg-[var(--surface)] flex items-center gap-2 flex-wrap">
+          <a
+            href={mailto}
+            className="text-xs px-3 py-1.5 rounded bg-[var(--foreground)] text-[var(--background)] font-medium hover:opacity-90 transition-opacity inline-flex items-center gap-1.5"
+          >
+            Open in mail client
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <path d="M3 1.5L7 5L3 8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </a>
+          <button
+            onClick={() => copy(fullText, "all")}
+            className="text-[11px] px-3 py-1.5 rounded border border-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--muted)] transition-colors"
+          >
+            {copied === "all" ? "Copied" : "Copy"}
+          </button>
+          <button
+            onClick={() => copy(draft.body, "body")}
+            className="text-[11px] px-3 py-1.5 rounded border border-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--muted)] transition-colors"
+          >
+            {copied === "body" ? "Copied" : "Copy body"}
+          </button>
+          <button
+            onClick={downloadTxt}
+            className="text-[11px] px-3 py-1.5 rounded border border-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--muted)] transition-colors ml-auto"
+          >
+            Download .txt
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmailField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div>
+      <div className="text-[10px] tracking-widest uppercase text-[var(--muted-soft)] mb-1">{label}</div>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full text-xs bg-[var(--surface)] border border-[var(--border)] rounded px-3 py-1.5 text-[var(--foreground)] focus:outline-none focus:border-[var(--muted)]"
+      />
     </div>
   );
 }
