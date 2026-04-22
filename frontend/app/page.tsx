@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { OrderForm } from "./components/order-form";
 import { DocumentUpload } from "./components/document-upload";
 import { AgentPipeline } from "./components/agent-pipeline";
@@ -45,6 +46,30 @@ export interface EvaluationData {
   }>;
 }
 
+export type LetterMode = "draft" | "placeholder" | "override";
+
+export interface LetterData {
+  mode: LetterMode;
+  generated_at: string;
+  payor_name: string;
+  policy_id: string;
+  policy_version: string;
+  patient_name: string;
+  test_name: string;
+  cpt_codes: string[];
+  icd10_codes: string[];
+  ordering_provider: string;
+  institution: string;
+  introduction: string;
+  clinical_summary: string;
+  medical_necessity_justification: string;
+  supporting_documentation: string[];
+  conclusion: string;
+  known_issues: Array<{ severity: string; category: string; description: string }>;
+  warnings: string[];
+  body_markdown: string;
+}
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
 
 interface OrderContext {
@@ -55,6 +80,7 @@ interface OrderContext {
 }
 
 export default function Home() {
+  const router = useRouter();
   const [mode, setMode] = useState<"documents" | "json">("documents");
   const [agents, setAgents] = useState<AgentUpdate[]>([]);
   const [result, setResult] = useState<EvaluationData | null>(null);
@@ -62,14 +88,37 @@ export default function Home() {
   const [orderContext, setOrderContext] = useState<OrderContext | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastOrderJson, setLastOrderJson] = useState<string | null>(null);
   const feedRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const handoffHandled = useRef(false);
 
   useEffect(() => {
     if (feedRef.current) {
       feedRef.current.scrollTo({ top: feedRef.current.scrollHeight, behavior: "smooth" });
     }
   }, [agents, result, uploadStatus]);
+
+  // Accept a dashboard handoff on mount: stash an order in sessionStorage
+  // from /dashboard and we pick it up, switch to JSON mode, auto-submit.
+  useEffect(() => {
+    if (handoffHandled.current) return;
+    handoffHandled.current = true;
+    try {
+      const raw = sessionStorage.getItem("dashboardHandoff");
+      if (!raw) return;
+      sessionStorage.removeItem("dashboardHandoff");
+      const payload = JSON.parse(raw) as { order: unknown; autoSubmit?: boolean };
+      const json = JSON.stringify(payload.order, null, 2);
+      if (payload.autoSubmit) {
+        setMode("json");
+        void runJsonEvaluation(json);
+      }
+    } catch {
+      // malformed handoff — ignore, user can start a fresh run
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSSEEvent = (event: string, data: unknown) => {
     if (event === "upload_status") {
@@ -84,6 +133,14 @@ export default function Home() {
       );
     } else if (event === "result") {
       setResult(data as EvaluationData);
+    } else if (event === "order") {
+      // Parsed order surfaced from document_analyzer / order_parser —
+      // we stash it so the Generate MNF handoff works from the doc-upload path too.
+      try {
+        setLastOrderJson(JSON.stringify(data));
+      } catch {
+        // ignore — MNF button will simply stay disabled
+      }
     } else if (event === "error") {
       setError((data as { message: string }).message);
     }
@@ -137,6 +194,7 @@ export default function Home() {
     setError(null);
     setAgents([]);
     setUploadStatus(null);
+    setLastOrderJson(null);
     setOrderContext({
       label: `${Object.keys(files).length} document${Object.keys(files).length === 1 ? "" : "s"} submitted`,
     });
@@ -173,6 +231,7 @@ export default function Home() {
     setError(null);
     setAgents([]);
     setUploadStatus(null);
+    setLastOrderJson(orderJson);
 
     try {
       const parsed = JSON.parse(orderJson);
@@ -195,7 +254,9 @@ export default function Home() {
       const response = await fetch(`${API_URL}/api/v1/evaluate/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ order: JSON.parse(orderJson) }),
+        body: JSON.stringify({
+          order: JSON.parse(orderJson),
+        }),
         signal: controller.signal,
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
@@ -213,6 +274,17 @@ export default function Home() {
     await runJsonEvaluation(orderJson);
   };
 
+  const handleGenerateMnf = useCallback(() => {
+    if (!result || !lastOrderJson) return;
+    try {
+      const payload = { order: JSON.parse(lastOrderJson), evaluation: result };
+      sessionStorage.setItem("mnfHandoff", JSON.stringify(payload));
+      router.push("/mnf");
+    } catch (err) {
+      setError(`Unable to hand off to MNF: ${err instanceof Error ? err.message : "unknown"}`);
+    }
+  }, [result, lastOrderJson, router]);
+
   const reset = () => {
     setAgents([]);
     setResult(null);
@@ -220,6 +292,7 @@ export default function Home() {
     setUploadStatus(null);
     setOrderContext(null);
     setIsRunning(false);
+    setLastOrderJson(null);
   };
 
   const hasActivity = agents.length > 0 || result || error || uploadStatus;
@@ -330,8 +403,28 @@ export default function Home() {
 
             {result && <EvaluationResult data={result} />}
 
+            {result && !isRunning && (
+              <div className="pt-6 animate-fade-in flex items-center gap-3 flex-wrap">
+                <button
+                  onClick={handleGenerateMnf}
+                  disabled={!lastOrderJson}
+                  className="text-xs bg-[var(--foreground)] text-[var(--background)] font-medium rounded px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed inline-flex items-center gap-2"
+                >
+                  Generate medical necessity form
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+                {!lastOrderJson && (
+                  <span className="text-[10px] text-[var(--muted)]">
+                    Parsed order not available yet — wait for the pipeline to finish
+                  </span>
+                )}
+              </div>
+            )}
+
             {(result || error) && !isRunning && (
-              <div className="pt-6 animate-fade-in">
+              <div className="pt-3 animate-fade-in">
                 <button
                   onClick={reset}
                   className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors border border-[var(--border)] rounded px-3 py-1.5 hover:border-[var(--muted)]"

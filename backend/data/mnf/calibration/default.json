@@ -1,0 +1,44 @@
+{
+  "payors": {
+    "UHC_COMMERCIAL": {
+      "detailLevel": "detailed",
+      "emphasizeFamilyHistory": true,
+      "emphasizePriorTesting": true,
+      "preferredGuidelineSources": ["ACMG", "NCCN"],
+      "targetWordCount": 300,
+      "notes": "UnitedHealthcare historically requires detailed justification. Include explicit guideline criteria met by the patient, detailed family history with relationships and ages, and a clear statement of how results will change clinical management. Longer, thorough justifications have higher approval rates."
+    },
+    "AETNA_COMMERCIAL": {
+      "detailLevel": "standard",
+      "emphasizeFamilyHistory": true,
+      "emphasizePriorTesting": true,
+      "preferredGuidelineSources": ["NCCN", "ACMG"],
+      "targetWordCount": 220,
+      "notes": "Aetna responds well to structured justifications linking patient-specific criteria to NCCN or ACMG guideline recommendations. Include specific family history details with ages at diagnosis. Reference prior negative testing as support for broader panel testing. For hereditary cancer, emphasize pedigree and prior workup."
+    },
+    "CIGNA": {
+      "detailLevel": "standard",
+      "emphasizeFamilyHistory": true,
+      "emphasizePriorTesting": false,
+      "preferredGuidelineSources": ["ACMG", "NCCN"],
+      "targetWordCount": 200,
+      "notes": "Cigna prefers concise justifications that lead with ACMG recommendations."
+    },
+    "MEDICARE": {
+      "detailLevel": "detailed",
+      "emphasizeFamilyHistory": true,
+      "emphasizePriorTesting": true,
+      "preferredGuidelineSources": ["NCCN", "ACMG"],
+      "targetWordCount": 350,
+      "notes": "Medicare requires 'reasonable and necessary' justification per CMS guidelines. Reference applicable LCD criteria explicitly. Include tumor characteristics (histology, grade, stage) for oncology."
+    }
+  },
+  "defaults": {
+    "detailLevel": "standard",
+    "emphasizeFamilyHistory": true,
+    "emphasizePriorTesting": false,
+    "preferredGuidelineSources": ["ACMG", "NCCN"],
+    "targetWordCount": 220,
+    "notes": "Provide a balanced justification covering patient-specific clinical factors, test rationale, and guideline support."
+  }
+}

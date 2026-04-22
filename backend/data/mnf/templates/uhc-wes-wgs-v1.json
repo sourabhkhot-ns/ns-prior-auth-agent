@@ -1,0 +1,46 @@
+{
+  "templateId": "uhc-wes-wgs-v1",
+  "payorId": "UHC_COMMERCIAL",
+  "payorName": "UnitedHealthcare",
+  "testTypes": ["wes_wgs"],
+  "version": "1.0",
+  "effectiveDate": "2026-01-01",
+  "justificationFieldId": "medical_necessity_narrative",
+  "fields": [
+    { "fieldId": "member_name_last", "label": "Member Last Name", "fieldType": "text", "required": true, "section": "Member Information", "dataSourceHint": "order.patient.last_name" },
+    { "fieldId": "member_name_first", "label": "Member First Name", "fieldType": "text", "required": true, "section": "Member Information", "dataSourceHint": "order.patient.first_name" },
+    { "fieldId": "member_dob", "label": "Date of Birth", "fieldType": "date", "required": true, "section": "Member Information", "dataSourceHint": "order.patient.date_of_birth" },
+    { "fieldId": "member_sex", "label": "Sex", "fieldType": "text", "required": true, "section": "Member Information", "dataSourceHint": "order.patient.sex" },
+    { "fieldId": "member_id", "label": "UHC Member ID", "fieldType": "text", "required": true, "section": "Member Information", "dataSourceHint": "order.insurance.primary.member_id" },
+    { "fieldId": "group_number", "label": "Group Number", "fieldType": "text", "required": false, "section": "Member Information", "dataSourceHint": "order.insurance.primary.group_id" },
+    { "fieldId": "prior_auth_number", "label": "Prior Authorization Number", "fieldType": "text", "required": false, "section": "Member Information", "dataSourceHint": "order.insurance.primary.authorization_number" },
+
+    { "fieldId": "provider_name", "label": "Requesting Provider Name", "fieldType": "text", "required": true, "section": "Provider Information", "dataSourceHint": "order.care_team.ordering_provider" },
+    { "fieldId": "provider_specialty", "label": "Provider Specialty", "fieldType": "text", "required": true, "section": "Provider Information", "helpText": "UHC requires medical geneticist, genetic counselor, or specialist with genetics expertise" },
+    { "fieldId": "provider_npi", "label": "Provider NPI", "fieldType": "npi", "required": true, "section": "Provider Information" },
+    { "fieldId": "provider_phone", "label": "Provider Phone", "fieldType": "phone", "required": true, "section": "Provider Information" },
+    { "fieldId": "institution", "label": "Institution / Facility", "fieldType": "text", "required": true, "section": "Provider Information", "dataSourceHint": "order.care_team.institution_name" },
+
+    { "fieldId": "test_name", "label": "Test Name", "fieldType": "text", "required": true, "section": "Test Information", "dataSourceHint": "order.test_name" },
+    { "fieldId": "test_type", "label": "Test Type", "fieldType": "text", "required": true, "section": "Test Information", "options": ["WES - Proband", "WES - Duo", "WES - Trio", "WGS - Proband", "WGS - Rapid"] },
+    { "fieldId": "cpt_codes", "label": "CPT Codes", "fieldType": "multiselect", "required": true, "section": "Test Information", "dataSourceHint": "catalog.cpt_codes" },
+    { "fieldId": "lab_name", "label": "Performing Laboratory", "fieldType": "text", "required": true, "section": "Test Information" },
+    { "fieldId": "specimen_type", "label": "Specimen Type", "fieldType": "text", "required": true, "section": "Test Information", "dataSourceHint": "order.sample.sample_type" },
+
+    { "fieldId": "icd10_primary", "label": "Primary ICD-10 Code", "fieldType": "code", "required": true, "section": "Clinical Indication", "dataSourceHint": "order.clinical_info.icd10_codes[0]" },
+    { "fieldId": "icd10_secondary", "label": "Secondary ICD-10 Codes", "fieldType": "multiselect", "required": false, "section": "Clinical Indication", "dataSourceHint": "order.clinical_info.icd10_codes[1:]" },
+    { "fieldId": "clinical_indications", "label": "Clinical Indications Narrative", "fieldType": "textarea", "required": true, "section": "Clinical Indication", "dataSourceHint": "order.clinical_info.indications" },
+    { "fieldId": "family_history", "label": "Family History", "fieldType": "textarea", "required": false, "section": "Clinical Indication", "dataSourceHint": "order.clinical_info.family_history" },
+    { "fieldId": "prior_testing", "label": "Prior Genetic Testing", "fieldType": "textarea", "required": false, "section": "Clinical Indication", "dataSourceHint": "order.clinical_info.prior_testing_details" },
+
+    { "fieldId": "genetic_counseling_completed", "label": "Pre-test Genetic Counseling Completed", "fieldType": "checkbox", "required": true, "section": "Documentation", "helpText": "UHC requires pre-test genetic counseling documentation" },
+    { "fieldId": "informed_consent", "label": "Informed Consent on File", "fieldType": "checkbox", "required": true, "section": "Documentation" },
+    { "fieldId": "clinical_notes_attached", "label": "Clinical Notes Attached", "fieldType": "checkbox", "required": true, "section": "Documentation" },
+    { "fieldId": "prior_testing_results_attached", "label": "Prior Testing Results Attached", "fieldType": "checkbox", "required": false, "section": "Documentation", "helpText": "Required if CMA, single-gene, or panel testing was previously performed" },
+
+    { "fieldId": "medical_necessity_narrative", "label": "Medical Necessity Justification", "fieldType": "textarea", "required": true, "section": "Medical Necessity", "helpText": "Generated narrative covering patient-specific factors, test rationale, guideline support, and clinical utility" },
+
+    { "fieldId": "physician_signature", "label": "Physician Signature", "fieldType": "text", "required": true, "section": "Attestation" },
+    { "fieldId": "signature_date", "label": "Date Signed", "fieldType": "date", "required": true, "section": "Attestation" }
+  ]
+}

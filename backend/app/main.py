@@ -14,6 +14,7 @@ from app.api.routes_evaluate_documents import router as evaluate_documents_route
 from app.api.routes_catalog import router as catalog_router
 from app.api.routes_rules import router as rules_router
 from app.api.routes_letter import router as letter_router
+from app.api.routes_mnf import router as mnf_router
 
 logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO))
 logger = logging.getLogger(__name__)
@@ -53,6 +54,7 @@ app.include_router(evaluate_documents_router)
 app.include_router(catalog_router)
 app.include_router(rules_router)
 app.include_router(letter_router)
+app.include_router(mnf_router)
 
 
 @app.get("/api/v1/health")

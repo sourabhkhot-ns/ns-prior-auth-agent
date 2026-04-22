@@ -1,0 +1,124 @@
+{
+  "source": "ACMG",
+  "guidelines": [
+    {
+      "id": "acmg-hboc-2023",
+      "title": "ACMG Practice Guideline: Risk Assessment and Genetic Counseling for Hereditary Breast and Ovarian Cancer (Updated 2023)",
+      "year": 2023,
+      "testTypes": ["hereditary_cancer_panel"],
+      "indications": ["Z15.01", "Z15.02", "Z80.3", "Z80.41", "C50", "C56", "Z84.81"],
+      "excerpt": "Multi-gene panel testing is recommended for individuals meeting criteria for hereditary breast and ovarian cancer (HBOC) assessment, including those with a personal history of breast cancer diagnosed at age 50 or younger, ovarian cancer at any age, male breast cancer, or multiple primary breast cancers. Panel testing should also be considered for individuals with a first- or second-degree relative meeting any of these criteria, or with a known pathogenic variant in a cancer susceptibility gene in the family. ACMG recommends panels include at minimum: BRCA1, BRCA2, PALB2, ATM, CHEK2, TP53, PTEN, CDH1, STK11. Testing should be accompanied by pre-test genetic counseling by a certified genetic counselor (CGC) or medical geneticist.",
+      "keyPoints": [
+        "Multi-gene panel testing recommended for qualifying individuals",
+        "Personal history of early-onset breast cancer (≤50) is an indication",
+        "Family history of breast/ovarian cancer in first or second-degree relatives qualifies",
+        "Known familial pathogenic variant warrants cascade testing",
+        "Pre-test genetic counseling required",
+        "Panel should include BRCA1/2, PALB2, ATM, CHEK2, TP53, PTEN, CDH1, STK11",
+        "Somatic CDH1 findings may warrant germline correlation",
+        "VUS results should be managed with reclassification follow-up"
+      ]
+    },
+    {
+      "id": "acmg-lynch-2022",
+      "title": "ACMG Technical Standard: Genetic Testing Strategies for Lynch Syndrome (Updated 2022)",
+      "year": 2022,
+      "testTypes": ["hereditary_cancer_panel"],
+      "indications": ["Z80.0", "C18", "C19", "C20", "Z15.09", "C54"],
+      "excerpt": "Germline genetic testing for Lynch syndrome should be offered to individuals with colorectal cancer diagnosed before age 50, individuals with endometrial cancer diagnosed before age 60, individuals with colorectal or endometrial cancer with tumor testing suggesting Lynch syndrome (MSI-H or dMMR), and individuals with a first-degree relative with a known Lynch syndrome-associated pathogenic variant. Multi-gene panel testing that includes the mismatch repair genes (MLH1, MSH2, MSH6, PMS2) and EPCAM is an appropriate testing strategy. Universal tumor screening with MSI/IHC is recommended for all newly diagnosed colorectal and endometrial cancers to identify candidates for germline testing.",
+      "keyPoints": [
+        "Universal tumor screening (MSI/IHC) recommended for all CRC and endometrial cancers",
+        "Genetic testing indicated for early-onset colorectal cancer (<50)",
+        "Endometrial cancer <60 qualifies for testing",
+        "Multi-gene panels including MMR genes are appropriate",
+        "Family history of multiple Lynch-associated cancers supports testing",
+        "Cascade testing for known familial variants recommended",
+        "MSI-H or dMMR tumor results should trigger germline testing",
+        "Panel must include MLH1, MSH2, MSH6, PMS2, EPCAM"
+      ]
+    },
+    {
+      "id": "acmg-carrier-2023",
+      "title": "ACMG Position Statement: Carrier Screening in the Genomic Era (Updated 2023)",
+      "year": 2023,
+      "testTypes": ["carrier_screening"],
+      "indications": ["Z31.430", "Z31.440", "Z31.5"],
+      "excerpt": "ACMG recommends offering expanded carrier screening to all individuals who are pregnant or considering pregnancy, regardless of ethnicity or ancestry. Panels should include conditions with a carrier frequency of 1 in 200 or greater and conditions with well-established clinical significance. Ethnicity-based targeted screening is no longer recommended as the primary approach. Screening should be offered in conjunction with genetic counseling to ensure informed consent and appropriate interpretation of results. Partner testing is recommended when a carrier is identified.",
+      "keyPoints": [
+        "Carrier screening recommended for ALL individuals considering pregnancy regardless of ethnicity",
+        "Pan-ethnic expanded panels preferred over ethnicity-based targeted screening",
+        "Panels should cover conditions with carrier frequency ≥1/200",
+        "Genetic counseling should accompany screening",
+        "Partner testing recommended when carrier identified",
+        "Results inform reproductive options: PGT-M, prenatal diagnosis, donor gametes"
+      ]
+    },
+    {
+      "id": "acmg-pgx-2024",
+      "title": "ACMG Position Statement: Clinical Pharmacogenomic Testing (2024)",
+      "year": 2024,
+      "testTypes": ["pharmacogenomics"],
+      "indications": ["Z79.899", "F32", "F33"],
+      "excerpt": "Pharmacogenomic testing is recommended when initiating therapy with drugs that have FDA-recognized pharmacogenomic biomarkers and where testing results may change prescribing decisions. For psychiatric medications, CYP2D6 and CYP2C19 genotyping can guide antidepressant and antipsychotic dosing. Testing is particularly indicated for patients who have experienced treatment failure, adverse drug reactions, or who are being prescribed medications with narrow therapeutic indices. CPIC guidelines should be followed for clinical interpretation of pharmacogenomic results. Pre-emptive pharmacogenomic testing panels are increasingly supported for patients likely to encounter multiple pharmacogenomic-actionable medications.",
+      "keyPoints": [
+        "Testing recommended for drugs with FDA-recognized PGx biomarkers",
+        "CYP2D6/CYP2C19 genotyping guides psychiatric medication dosing",
+        "Prior treatment failure or adverse reactions strengthen indication",
+        "CPIC guidelines should guide clinical interpretation",
+        "Pre-emptive panel testing supported for multi-medication patients",
+        "Results can change prescribing decisions and dosing",
+        "Narrow therapeutic index drugs prioritized for PGx testing"
+      ]
+    },
+    {
+      "id": "acmg-sf-v3.2-2023",
+      "title": "ACMG Secondary Findings v3.2 (Updated 2023)",
+      "year": 2023,
+      "testTypes": ["hereditary_cancer_panel", "carrier_screening"],
+      "indications": ["Z15.01", "Z15.02", "Z15.09", "Z80.3"],
+      "excerpt": "ACMG recommends that laboratories performing clinical exome or genome sequencing actively look for and report pathogenic/likely pathogenic variants in a defined list of 81 genes associated with medically actionable conditions. For hereditary cancer panels, relevant secondary findings genes include BRCA1, BRCA2, TP53, PTEN, MLH1, MSH2, MSH6, PMS2, APC, MUTYH, CDH1, PALB2, BMPR1A, SMAD4, and STK11. Patients should be counseled about the possibility of secondary findings before testing, and informed consent for reporting of secondary findings should be obtained.",
+      "keyPoints": [
+        "81 genes on the ACMG secondary findings list",
+        "Laboratories should actively look for and report pathogenic variants in these genes",
+        "Patient consent required for secondary findings reporting",
+        "Hereditary cancer genes on the list include BRCA1/2, TP53, Lynch genes, APC",
+        "Pre-test counseling must cover possibility of secondary findings"
+      ]
+    },
+    {
+      "id": "acmg-ces-2021",
+      "title": "ACMG Clinical Practice Resource: Clinical utility of genetic and genomic services (2021)",
+      "year": 2021,
+      "testTypes": ["wes_wgs"],
+      "indications": [
+        "Q00", "Q01", "Q02", "Q04", "Q21", "Q62", "Q87", "Q89",
+        "F70", "F71", "F72", "F73", "F79", "F80", "F84", "F88", "F89",
+        "G40", "R62"
+      ],
+      "excerpt": "ACMG recommends clinical exome or genome sequencing (CES/CGS) as a first-tier diagnostic test for individuals with congenital anomalies, intellectual disability, developmental delay, or other suspected genetic disease where a specific syndrome is not clinically recognized. Diagnostic yield for CES/CGS in these populations is consistently higher (25-40%) than targeted panels or chromosomal microarray alone. Trio testing (patient + both biological parents) improves diagnostic yield and variant interpretation. Early diagnosis enables targeted therapy, avoids a prolonged diagnostic odyssey, and supports recurrence-risk counseling for the family.",
+      "keyPoints": [
+        "CES/CGS is a first-tier diagnostic test for unexplained congenital anomalies, ID, DD",
+        "Diagnostic yield 25-40%, substantially higher than CMA alone",
+        "Trio testing (proband + parents) recommended when parents are available",
+        "Pre- and post-test genetic counseling required",
+        "Test results can directly change clinical management (targeted therapy, surveillance, recurrence-risk counseling)",
+        "Avoids the diagnostic odyssey of sequential single-gene tests"
+      ]
+    },
+    {
+      "id": "acmg-rapid-wgs-2022",
+      "title": "ACMG Points to Consider: Rapid genome sequencing for acutely ill neonates and infants (2022)",
+      "year": 2022,
+      "testTypes": ["wes_wgs"],
+      "indications": ["Q00", "Q04", "Q21", "Q62", "Q87", "Q89", "P07", "P22", "G40"],
+      "excerpt": "Rapid whole genome sequencing (rWGS) is clinically appropriate for acutely ill neonates and pediatric patients with a suspected genetic etiology in whom a timely diagnosis would change clinical management. Evidence supports rWGS turnaround times of 3-7 days in NICU/PICU settings, with diagnostic yields of 30-50% and documented changes in medical management in a majority of diagnosed cases. Clinical indications include multiple congenital anomalies, intractable seizures of unknown etiology, hypotonia with encephalopathy, and clinical suspicion of an inborn error of metabolism.",
+      "keyPoints": [
+        "rWGS indicated for acutely ill neonates/infants with suspected genetic etiology",
+        "Diagnostic yield 30-50% with management changes in most diagnosed cases",
+        "Appropriate turnaround 3-7 days",
+        "Indications: multiple congenital anomalies, intractable seizures, encephalopathy, suspected IEM",
+        "Requires pre-test counseling and informed consent from parent/guardian"
+      ]
+    }
+  ]
+}

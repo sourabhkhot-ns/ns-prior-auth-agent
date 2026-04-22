@@ -1,0 +1,63 @@
+{
+  "source": "NCCN",
+  "guidelines": [
+    {
+      "id": "nccn-hboc-v3-2025",
+      "title": "NCCN Clinical Practice Guidelines: Genetic/Familial High-Risk Assessment: Breast, Ovarian, and Pancreatic (v2.2025)",
+      "year": 2025,
+      "testTypes": ["hereditary_cancer_panel"],
+      "indications": ["Z15.01", "Z15.02", "Z80.3", "Z80.41", "C50", "C56", "C25", "Z84.81"],
+      "excerpt": "NCCN recommends multi-gene panel testing for individuals who meet testing criteria based on personal and/or family history. Testing criteria include: breast cancer diagnosed at any age with a close relative with breast cancer ≤50, ovarian cancer, male breast cancer, or pancreatic cancer; breast cancer ≤45 years; triple-negative breast cancer ≤60 years; two or more primary breast cancers with first diagnosed ≤50; ovarian cancer at any age; male breast cancer at any age; pancreatic cancer with ≥1 close relative with breast, ovarian, or pancreatic cancer; prostate cancer (metastatic, high-risk group, very-high-risk group, or Ashkenazi Jewish ancestry); ≥3 breast cancer diagnoses in patient and/or close blood relatives on same side of family; known pathogenic/likely pathogenic variant in a cancer susceptibility gene in the family (cascade testing); individuals with ≥5% probability of BRCA1/2 mutation on validated prediction model. Multi-gene panel testing should include genes with established clinical actionability, including BRCA1, BRCA2, PALB2, ATM, CHEK2, TP53, PTEN, CDH1, STK11, and others as clinically indicated.",
+      "keyPoints": [
+        "Multi-gene panel testing recommended for all qualifying individuals",
+        "Breast cancer ≤45 years qualifies regardless of family history",
+        "Triple-negative breast cancer ≤60 years qualifies",
+        "Multiple primary cancers in patient or family is an indication",
+        "Ovarian cancer at ANY age qualifies for testing",
+        "Known familial pathogenic variant warrants cascade testing",
+        "Prostate cancer meeting risk criteria (metastatic, high/very-high risk, or Ashkenazi) qualifies",
+        "Pancreatic cancer with family history of breast/ovarian/pancreatic qualifies",
+        "Panel should include BRCA1/2, PALB2, ATM, CHEK2, TP53, PTEN, CDH1, STK11",
+        "Testing results impact surgical decisions, PARP inhibitor eligibility, and cascade testing"
+      ]
+    },
+    {
+      "id": "nccn-lynch-v2-2025",
+      "title": "NCCN Clinical Practice Guidelines: Genetic/Familial High-Risk Assessment: Colorectal, Endometrial, and Related (v1.2025)",
+      "year": 2025,
+      "testTypes": ["hereditary_cancer_panel"],
+      "indications": ["Z80.0", "C18", "C19", "C20", "C54", "C61", "Z15.09"],
+      "excerpt": "Multi-gene panel testing is recommended for individuals with a personal history of colorectal cancer diagnosed ≤50 years, endometrial cancer diagnosed ≤60 years, or other Lynch syndrome-associated cancers with MSI-H/dMMR tumor testing results. Testing is also recommended for individuals meeting revised Bethesda guidelines, Amsterdam II criteria, or with ≥2 first-degree relatives with Lynch-associated cancers. For prostate cancer, testing is recommended for patients with a significant family history of Lynch-associated cancers or with MSI-H tumors. Results inform cancer surveillance intensity, interval, and modality; risk-reducing surgery decisions (prophylactic hysterectomy/oophorectomy, colectomy); immunotherapy eligibility for MSI-H tumors; and family cascade testing for identified variants.",
+      "keyPoints": [
+        "Colorectal cancer ≤50 years qualifies for germline testing",
+        "Endometrial cancer ≤60 years qualifies for germline testing",
+        "MSI-H or dMMR tumor testing results trigger germline testing",
+        "Revised Bethesda guidelines and Amsterdam II criteria apply",
+        "Family history of ≥2 first-degree relatives with Lynch cancers supports testing",
+        "Results guide surveillance frequency and risk-reducing surgery",
+        "Immunotherapy eligibility for MSI-H tumors informed by testing",
+        "Prostate cancer patients with Lynch family history should be tested",
+        "Cascade testing recommended for all first-degree relatives of variant carriers",
+        "Panel should include MLH1, MSH2, MSH6, PMS2, EPCAM at minimum"
+      ]
+    },
+    {
+      "id": "nccn-prostate-v4-2025",
+      "title": "NCCN Clinical Practice Guidelines: Prostate Cancer — Germline Testing Recommendations (v4.2025)",
+      "year": 2025,
+      "testTypes": ["hereditary_cancer_panel"],
+      "indications": ["C61", "Z80.0", "Z15.09"],
+      "excerpt": "NCCN recommends germline testing for all men with metastatic prostate cancer regardless of family history. For localized prostate cancer, germline testing is recommended for: high-risk or very-high-risk group; Ashkenazi Jewish ancestry; known family pathogenic variant; strong family history (≥1 close relative with breast cancer ≤50, ovarian cancer, pancreatic cancer, or metastatic/high-grade prostate cancer). Actionable genes include BRCA2 (most impactful for prostate — associated with higher grade, earlier onset, and PARP inhibitor eligibility), BRCA1, ATM, PALB2, CHEK2, MLH1, MSH2, MSH6, PMS2, and HOXB13. BRCA2 carriers with prostate cancer may be eligible for olaparib or other PARP inhibitors.",
+      "keyPoints": [
+        "ALL metastatic prostate cancer patients should undergo germline testing",
+        "High-risk and very-high-risk localized prostate cancer qualifies",
+        "Ashkenazi Jewish ancestry with prostate cancer qualifies",
+        "BRCA2 is the most impactful gene — associated with aggressive disease",
+        "PARP inhibitor eligibility (olaparib) for BRCA1/2 carriers",
+        "Family history of breast ≤50, ovarian, or pancreatic cancer supports testing",
+        "ATM, PALB2, CHEK2 variants affect cancer management",
+        "HOXB13 mutations associated with hereditary prostate cancer"
+      ]
+    }
+  ]
+}

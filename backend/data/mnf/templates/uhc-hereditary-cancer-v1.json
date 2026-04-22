@@ -1,0 +1,46 @@
+{
+  "templateId": "uhc-hc-v1",
+  "payorId": "UHC_COMMERCIAL",
+  "payorName": "UnitedHealthcare",
+  "testTypes": ["hereditary_cancer_panel"],
+  "version": "1.0",
+  "effectiveDate": "2026-01-01",
+  "justificationFieldId": "medical_necessity_narrative",
+  "fields": [
+    { "fieldId": "member_name_last", "label": "Member Last Name", "fieldType": "text", "required": true, "section": "Member Information", "dataSourceHint": "order.patient.last_name" },
+    { "fieldId": "member_name_first", "label": "Member First Name", "fieldType": "text", "required": true, "section": "Member Information", "dataSourceHint": "order.patient.first_name" },
+    { "fieldId": "member_dob", "label": "Date of Birth", "fieldType": "date", "required": true, "section": "Member Information", "dataSourceHint": "order.patient.date_of_birth" },
+    { "fieldId": "member_sex", "label": "Sex", "fieldType": "text", "required": true, "section": "Member Information", "dataSourceHint": "order.patient.sex" },
+    { "fieldId": "patient_ethnicity", "label": "Patient Ethnicity", "fieldType": "text", "required": false, "section": "Member Information", "dataSourceHint": "order.patient.ethnicity" },
+    { "fieldId": "member_id", "label": "UHC Member ID", "fieldType": "text", "required": true, "section": "Member Information", "dataSourceHint": "order.insurance.primary.member_id" },
+    { "fieldId": "group_number", "label": "Group Number", "fieldType": "text", "required": false, "section": "Member Information", "dataSourceHint": "order.insurance.primary.group_id" },
+    { "fieldId": "prior_auth_number", "label": "Prior Authorization Number", "fieldType": "text", "required": false, "section": "Member Information", "dataSourceHint": "order.insurance.primary.authorization_number" },
+
+    { "fieldId": "ordering_provider_name", "label": "Ordering Provider Name", "fieldType": "text", "required": true, "section": "Provider Information", "dataSourceHint": "order.care_team.ordering_provider" },
+    { "fieldId": "provider_specialty", "label": "Provider Specialty", "fieldType": "text", "required": true, "section": "Provider Information", "helpText": "UHC requires oncology, medical genetics, or a specialist with expertise in the relevant cancer predisposition syndrome" },
+    { "fieldId": "provider_npi", "label": "Provider NPI", "fieldType": "npi", "required": true, "section": "Provider Information" },
+    { "fieldId": "provider_phone", "label": "Provider Phone", "fieldType": "phone", "required": true, "section": "Provider Information" },
+    { "fieldId": "practice_name", "label": "Practice / Facility", "fieldType": "text", "required": true, "section": "Provider Information", "dataSourceHint": "order.care_team.institution_name" },
+
+    { "fieldId": "test_name", "label": "Test Ordered", "fieldType": "text", "required": true, "section": "Test Information", "dataSourceHint": "order.test_name" },
+    { "fieldId": "cpt_codes", "label": "CPT Code(s)", "fieldType": "multiselect", "required": true, "section": "Test Information", "dataSourceHint": "catalog.cpt_codes" },
+    { "fieldId": "gene_panel_detail", "label": "Specific Genes / Panel Tier", "fieldType": "textarea", "required": true, "section": "Test Information", "dataSourceHint": "order.clinical_info.genes_of_interest" },
+    { "fieldId": "specimen_type", "label": "Specimen Type", "fieldType": "text", "required": true, "section": "Test Information", "dataSourceHint": "order.sample.sample_type" },
+
+    { "fieldId": "icd10_codes", "label": "ICD-10 Code(s)", "fieldType": "multiselect", "required": true, "section": "Clinical Information", "dataSourceHint": "order.clinical_info.icd10_codes" },
+    { "fieldId": "clinical_indications", "label": "Clinical Indications", "fieldType": "textarea", "required": true, "maxLength": 500, "section": "Clinical Information", "dataSourceHint": "order.clinical_info.indications" },
+    { "fieldId": "family_history", "label": "Relevant Family History", "fieldType": "textarea", "required": true, "maxLength": 500, "section": "Clinical Information", "dataSourceHint": "order.clinical_info.family_history", "helpText": "Include relatives, cancer types, and ages at diagnosis" },
+    { "fieldId": "prior_testing", "label": "Prior Genetic Testing", "fieldType": "textarea", "required": false, "maxLength": 500, "section": "Clinical Information", "dataSourceHint": "order.clinical_info.prior_testing_details" },
+
+    { "fieldId": "medical_necessity_narrative", "label": "Medical Necessity Justification", "fieldType": "textarea", "required": true, "maxLength": 2500, "section": "Medical Necessity", "helpText": "Patient presentation, test rationale, NCCN/ACMG support, clinical utility" },
+    { "fieldId": "planned_management_if_positive", "label": "Planned Clinical Management if Positive", "fieldType": "textarea", "required": true, "section": "Medical Necessity" },
+
+    { "fieldId": "genetic_counseling_completed", "label": "Pre-test Genetic Counseling Completed", "fieldType": "checkbox", "required": true, "section": "Consent & Attestation" },
+    { "fieldId": "informed_consent", "label": "Informed Consent Obtained", "fieldType": "checkbox", "required": true, "section": "Consent & Attestation" },
+    { "fieldId": "clinical_notes_attached", "label": "Clinical Notes Attached", "fieldType": "checkbox", "required": true, "section": "Consent & Attestation" },
+    { "fieldId": "prior_testing_results_attached", "label": "Prior Testing Results Attached", "fieldType": "checkbox", "required": false, "section": "Consent & Attestation" },
+
+    { "fieldId": "physician_signature", "label": "Physician Signature", "fieldType": "text", "required": true, "section": "Attestation" },
+    { "fieldId": "signature_date", "label": "Date Signed", "fieldType": "date", "required": true, "section": "Attestation" }
+  ]
+}
