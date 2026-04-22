@@ -91,12 +91,34 @@ export default function Home() {
   const [lastOrderJson, setLastOrderJson] = useState<string | null>(null);
   const feedRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const handoffHandled = useRef(false);
 
   useEffect(() => {
     if (feedRef.current) {
       feedRef.current.scrollTo({ top: feedRef.current.scrollHeight, behavior: "smooth" });
     }
   }, [agents, result, uploadStatus]);
+
+  // Accept a dashboard handoff on mount: stash an order in sessionStorage
+  // from /dashboard and we pick it up, switch to JSON mode, auto-submit.
+  useEffect(() => {
+    if (handoffHandled.current) return;
+    handoffHandled.current = true;
+    try {
+      const raw = sessionStorage.getItem("dashboardHandoff");
+      if (!raw) return;
+      sessionStorage.removeItem("dashboardHandoff");
+      const payload = JSON.parse(raw) as { order: unknown; autoSubmit?: boolean };
+      const json = JSON.stringify(payload.order, null, 2);
+      if (payload.autoSubmit) {
+        setMode("json");
+        void runJsonEvaluation(json);
+      }
+    } catch {
+      // malformed handoff — ignore, user can start a fresh run
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSSEEvent = (event: string, data: unknown) => {
     if (event === "upload_status") {

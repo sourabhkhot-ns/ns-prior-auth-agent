@@ -100,3 +100,19 @@ class TemplateRegistry:
             if t.archived_date is None and payor_matches(t):
                 return t
         return None
+
+    def find_any_for_test_type(self, test_type: str) -> FormTemplate | None:
+        """Fallback lookup: any non-archived template matching this test type."""
+        self._ensure_loaded()
+        for t in self._all:
+            if t.archived_date is None and test_type in t.test_types:
+                return t
+        return None
+
+    def find_any(self) -> FormTemplate | None:
+        """Last-resort fallback: any non-archived template at all."""
+        self._ensure_loaded()
+        for t in self._all:
+            if t.archived_date is None:
+                return t
+        return None

@@ -90,9 +90,22 @@ async def generate_mnf_draft(
             category_for_rule = test_entry.category if test_entry else "WES_WGS"
             payor_rule = await find_payor_rule(session, payor_name, category_for_rule)
 
-    # Pick the template — exact match first, then fall back to any template
-    # for this payor (with a flag), then give up.
-    payor_id = payor_rule.payor_code if payor_rule else payor_name.upper().replace(" ", "_")
+    # Pick the template. Three-level fallback so every demo order produces a draft:
+    #   1. exact (payor, test_type)
+    #   2. same payor, any test_type
+    #   3. any template with matching test_type
+    #   4. any template at all (last resort)
+    # Levels 2-4 attach a flag explaining the substitution so the reviewer knows to adapt.
+    #
+    # payor_id comes from the order's own insurance name, not the fuzzy payor_rule
+    # match — enrichment's rule lookup can fall back to the first rule with the same
+    # test_category, which would hide the fact that no template matches the real payor.
+    if payor_name:
+        payor_id = payor_name.upper().replace(" ", "_")
+    elif payor_rule:
+        payor_id = payor_rule.payor_code
+    else:
+        payor_id = "UNKNOWN"
     template = _templates.find(payor_id, test_type)
     template_fallback_note: str | None = None
     if not template:
@@ -104,11 +117,28 @@ async def generate_mnf_draft(
                 "a reviewer must adapt section headings and field labels if the submission target "
                 "is a different form."
             )
-            logger.warning("MNF: %s", template_fallback_note)
+    if not template:
+        template = _templates.find_any_for_test_type(test_type)
+        if template:
+            template_fallback_note = (
+                f"No template matches payor '{payor_id}' exactly. "
+                f"Using '{template.template_id}' from {template.payor_name} because it targets the same "
+                f"test type ('{test_type}') — a reviewer must re-label fields for the actual payor."
+            )
+    if not template:
+        template = _templates.find_any()
+        if template:
+            template_fallback_note = (
+                f"No template matches payor '{payor_id}' or test type '{test_type}'. "
+                f"Using the generic '{template.template_id}' as a starting point — "
+                "large manual edits will be required before submission."
+            )
+    if template_fallback_note:
+        logger.warning("MNF: %s", template_fallback_note)
     if not template:
         raise MNFError(
-            f"No MNF template available for payor '{payor_id}' and test type '{test_type}'. "
-            "Add a template under backend/data/mnf/templates/ or check the payor mapping."
+            "No MNF templates configured. Add at least one template under "
+            "backend/data/mnf/templates/."
         )
     logger.info(
         "MNF: selected template=%s payor=%s test_type=%s",
