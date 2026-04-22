@@ -168,7 +168,7 @@ def _assemble_draft(
     guidelines,
     template_fallback_note: str | None,
 ) -> DraftForm:
-    errors, flags = validate(template, populated, narrative)
+    errors, flags, pending = validate(template, populated, narrative)
     if template_fallback_note:
         flags.insert(0, template_fallback_note)
     return DraftForm(
@@ -182,6 +182,7 @@ def _assemble_draft(
         guidelines_cited=guidelines,
         validation_errors=errors,
         flags=flags,
+        pending_entry=pending,
         status="review",
     )
 
@@ -356,7 +357,11 @@ async def generate_mnf_draft_streaming(
         yield _event(
             "agent_update", id="validate", status="completed",
             label="Validating draft",
-            message=f"{len(draft.validation_errors)} errors · {len(draft.flags)} flags",
+            message=(
+                f"{len(draft.validation_errors)} errors · "
+                f"{len(draft.pending_entry)} pending entry · "
+                f"{len(draft.flags)} flags"
+            ),
         )
 
         yield _event("draft", data=draft.model_dump(mode="json"))

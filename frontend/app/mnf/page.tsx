@@ -69,6 +69,7 @@ export interface MnfDraft {
   guidelines_cited: MnfGuidelineCitation[];
   validation_errors: string[];
   flags: string[];
+  pending_entry: string[];
   status: string;
   created_at: string;
 }
@@ -326,7 +327,7 @@ export default function MnfPage() {
               </div>
             </div>
 
-            {/* Validation errors */}
+            {/* Validation errors — actual problems to fix */}
             {mergedDraft.validation_errors.length > 0 && (
               <div className="border border-[var(--error)]/30 bg-[var(--error)]/8 rounded-lg px-5 py-4 animate-slide-in">
                 <div className="text-[10px] tracking-widest uppercase text-[var(--error)] font-semibold mb-2">
@@ -343,7 +344,27 @@ export default function MnfPage() {
               </div>
             )}
 
-            {/* Flags */}
+            {/* Pending entry — fields the reviewer is expected to fill in */}
+            {mergedDraft.pending_entry && mergedDraft.pending_entry.length > 0 && (
+              <div className="border border-[var(--accent)]/30 bg-[var(--accent)]/8 rounded-lg px-5 py-4 animate-slide-in">
+                <div className="text-[10px] tracking-widest uppercase text-[var(--accent)] font-semibold mb-2">
+                  Complete before signing ({mergedDraft.pending_entry.length})
+                </div>
+                <p className="text-[11px] text-[var(--muted)] mb-2 leading-relaxed">
+                  These fields intentionally aren&apos;t auto-populated — the clinician fills them at signing.
+                </p>
+                <ul className="space-y-1 text-[12px] text-[var(--foreground)]/90">
+                  {mergedDraft.pending_entry.map((p, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="text-[var(--accent)] font-mono shrink-0">·</span>
+                      <span>{p}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Flags — things to double-check */}
             {mergedDraft.flags.length > 0 && (
               <div className="border border-[var(--warning)]/30 bg-[var(--warning)]/8 rounded-lg px-5 py-4 animate-slide-in">
                 <div className="text-[10px] tracking-widest uppercase text-[var(--warning)] font-semibold mb-2">

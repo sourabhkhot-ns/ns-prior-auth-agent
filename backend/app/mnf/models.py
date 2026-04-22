@@ -75,6 +75,7 @@ class DraftForm(BaseModel):
     guidelines_cited: list[GuidelineCitation] = Field(default_factory=list)
     validation_errors: list[str] = Field(default_factory=list)
     flags: list[str] = Field(default_factory=list)
+    pending_entry: list[str] = Field(default_factory=list)
     status: DraftStatus = "review"
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     reviewed_by: str | None = None

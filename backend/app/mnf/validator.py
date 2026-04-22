@@ -27,17 +27,23 @@ def validate(
     template: FormTemplate,
     populated: list[PopulatedField],
     justification: str,
-) -> tuple[list[str], list[str]]:
-    """Return (validation_errors, flags).
+) -> tuple[list[str], list[str], list[str]]:
+    """Return (validation_errors, flags, pending_entry).
 
-    Errors = things a reviewer must fix before submission (missing required fields,
-    malformed formats).
-    Flags = things the reviewer should double-check (low-confidence values,
-    checkbox defaults to false for critical attestations).
+    - errors: genuine problems — malformed formats, attestation checkboxes not
+      confirmed, required data that was expected to auto-populate but came up
+      empty (member ID, DOB, etc.).
+    - flags: things the reviewer should double-check (low-confidence values,
+      fallback-template usage).
+    - pending_entry: required fields the pipeline intentionally doesn't fill
+      (signatures, NPI, lab info, dates the reviewer stamps at sign-off) — these
+      are expected to remain empty at draft time and the clinician fills them
+      before signing. Not errors.
     """
     by_id = {p.field_id: p for p in populated}
     errors: list[str] = []
     flags: list[str] = []
+    pending: list[str] = []
 
     for f in template.fields:
         pf = by_id.get(f.field_id)
@@ -46,15 +52,22 @@ def validate(
                 errors.append(f"Field '{f.label}' is not populated")
             continue
 
-        if f.required and _is_empty(pf.value) and f.field_type != "checkbox":
-            errors.append(f"Required field '{f.label}' is missing")
+        is_empty = _is_empty(pf.value)
+
+        if f.required and is_empty and f.field_type != "checkbox":
+            # confidence == "manual" means the pipeline knows this field has no
+            # source in the Order and is expected to be filled in by the reviewer.
+            # That's a pending-entry, not a validation error.
+            if pf.confidence == "manual":
+                pending.append(f"'{f.label}' — complete before signing")
+            else:
+                errors.append(f"Required field '{f.label}' is missing")
             continue
 
-        # Required checkboxes that are False → error (for attestations)
+        # Required checkboxes that are False → error (attestations like
+        # "informed consent on file" must be actively confirmed before signing).
         if f.required and f.field_type == "checkbox" and pf.value is False:
-            errors.append(
-                f"Required attestation '{f.label}' is not confirmed"
-            )
+            errors.append(f"Required attestation '{f.label}' is not confirmed")
             continue
 
         # Format checks on populated values
@@ -74,11 +87,9 @@ def validate(
                     f"'{f.label}' exceeds max length ({len(pf.value)} > {f.max_length})"
                 )
 
-        # Low confidence → flag, not error
-        if pf.confidence == "low" and not _is_empty(pf.value):
+        # Low confidence (populated but uncertain) → flag
+        if pf.confidence == "low" and not is_empty:
             flags.append(f"Low-confidence value for '{f.label}' — verify")
-        if pf.confidence == "manual" and _is_empty(pf.value) and f.required:
-            flags.append(f"'{f.label}' requires manual entry before submission")
         if pf.flag_reason:
             flags.append(pf.flag_reason)
 
@@ -98,4 +109,4 @@ def validate(
             seen.add(f)
             unique_flags.append(f)
 
-    return errors, unique_flags
+    return errors, unique_flags, pending

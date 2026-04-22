@@ -167,6 +167,14 @@ def render_pdf(draft: DraftForm) -> bytes:
         for e in draft.validation_errors:
             story.append(Paragraph(f"• {e}", body_style))
 
+    if draft.pending_entry:
+        story.append(Paragraph(
+            "<font color='#2563eb'><b>Reviewer: complete before signing</b></font>",
+            section_style,
+        ))
+        for p in draft.pending_entry:
+            story.append(Paragraph(f"• {p}", body_style))
+
     if draft.flags:
         story.append(Paragraph(
             "<font color='#ca8a04'><b>Reviewer: verify</b></font>",
